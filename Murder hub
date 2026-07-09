@@ -1,0 +1,474 @@
+-- Ryzen MM2 Ultimate v2 (Полная версия)
+-- Murder Mystery 2 | Работает до раунда + ESP сквозь стены + AutoPickup
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
+local humanoid = char:WaitForChild("Humanoid")
+local cam = workspace.CurrentCamera
+local UserInput = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+
+-- ===== НАСТРОЙКИ =====
+local settings = {
+    espEnabled = false,
+    aimEnabled = false,
+    speedEnabled = false,
+    autoPickup = false,
+    speedValue = 50,
+    role = "Innocent",
+    weapon = nil -- "Knife" или "Gun"
+}
+
+-- ===== КРАСИВОЕ GUI =====
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player.PlayerGui
+screenGui.ResetOnSpawn = false
+
+-- Фон с градиентом
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 320, 0, 450)
+mainFrame.Position = UDim2.new(0.5, -160, 0.5, -225)
+mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+mainFrame.BackgroundTransparency = 0.15
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
+
+-- Скругление углов
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = mainFrame
+
+-- Заголовок
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 45)
+title.Position = UDim2.new(0, 0, 0, 5)
+title.Text = "✦ RYZEN MM2 ✦"
+title.TextSize = 22
+title.TextColor3 = Color3.fromRGB(255, 215, 0)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBold
+title.Parent = mainFrame
+
+-- Подзаголовок с ролью
+local roleLabel = Instance.new("TextLabel")
+roleLabel.Size = UDim2.new(1, 0, 0, 25)
+roleLabel.Position = UDim2.new(0, 0, 0, 45)
+roleLabel.Text = "Роль: Ожидание..."
+roleLabel.TextSize = 14
+roleLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+roleLabel.BackgroundTransparency = 1
+roleLabel.Font = Enum.Font.Gotham
+roleLabel.Parent = mainFrame
+
+-- Разделитель
+local divider = Instance.new("Frame")
+divider.Size = UDim2.new(0.9, 0, 0, 2)
+divider.Position = UDim2.new(0.05, 0, 0, 75)
+divider.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
+divider.BackgroundTransparency = 0.5
+divider.Parent = mainFrame
+
+-- Функция создания красивых кнопок
+local function createBtn(text, y, icon, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 270, 0, 45)
+    btn.Position = UDim2.new(0, 25, 0, y)
+    btn.Text = icon .. " " .. text
+    btn.TextSize = 16
+    btn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.Gotham
+    btn.BorderSizePixel = 0
+    btn.Parent = mainFrame
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 8)
+    btnCorner.Parent = btn
+    
+    btn.MouseButton1Click:Connect(function()
+        callback(btn)
+    end)
+    return btn
+end
+
+-- Кнопки
+local espBtn = createBtn("ESP (Сквозь стены)", 85, "👁️", function(btn)
+    settings.espEnabled = not settings.espEnabled
+    btn.Text = (settings.espEnabled and "✅ " or "👁️ ") .. "ESP (Сквозь стены)"
+    btn.BackgroundColor3 = settings.espEnabled and Color3.fromRGB(0, 120, 0) or Color3.fromRGB(35, 35, 50)
+    if settings.espEnabled then startESP() else stopESP() end
+end)
+
+local aimBtn = createBtn("Aimbot (Автонаведение)", 140, "🎯", function(btn)
+    settings.aimEnabled = not settings.aimEnabled
+    btn.Text = (settings.aimEnabled and "✅ " or "🎯 ") .. "Aimbot (Автонаведение)"
+    btn.BackgroundColor3 = settings.aimEnabled and Color3.fromRGB(0, 120, 0) or Color3.fromRGB(35, 35, 50)
+    if settings.aimEnabled then startAimbot() else stopAimbot() end
+end)
+
+local speedBtn = createBtn("Speed Glitch", 195, "⚡", function(btn)
+    settings.speedEnabled = not settings.speedEnabled
+    btn.Text = (settings.speedEnabled and "✅ " or "⚡ ") .. "Speed Glitch"
+    btn.BackgroundColor3 = settings.speedEnabled and Color3.fromRGB(0, 120, 0) or Color3.fromRGB(35, 35, 50)
+    if settings.speedEnabled then startSpeed() else stopSpeed() end
+end)
+
+local pickupBtn = createBtn("Авто-подбор пистолета", 250, "🔫", function(btn)
+    settings.autoPickup = not settings.autoPickup
+    btn.Text = (settings.autoPickup and "✅ " or "🔫 ") .. "Авто-подбор пистолета"
+    btn.BackgroundColor3 = settings.autoPickup and Color3.fromRGB(0, 120, 0) or Color3.fromRGB(35, 35, 50)
+end)
+
+-- Кнопка оружия (динамическая)
+local weaponBtn = Instance.new("TextButton")
+weaponBtn.Size = UDim2.new(0, 270, 0, 45)
+weaponBtn.Position = UDim2.new(0, 25, 0, 305)
+weaponBtn.Text = "🔪 Кинжал (Убийца)"
+weaponBtn.TextSize = 16
+weaponBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+weaponBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+weaponBtn.Font = Enum.Font.Gotham
+weaponBtn.BorderSizePixel = 0
+weaponBtn.Parent = mainFrame
+local weaponCorner = Instance.new("UICorner")
+weaponCorner.CornerRadius = UDim.new(0, 8)
+weaponCorner.Parent = weaponBtn
+
+-- Регулировка скорости
+local speedFrame = Instance.new("Frame")
+speedFrame.Size = UDim2.new(0, 270, 0, 35)
+speedFrame.Position = UDim2.new(0, 25, 0, 360)
+speedFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+speedFrame.BorderSizePixel = 0
+speedFrame.Parent = mainFrame
+local speedCorner = Instance.new("UICorner")
+speedCorner.CornerRadius = UDim.new(0, 8)
+speedCorner.Parent = speedFrame
+
+local speedLabel = Instance.new("TextLabel")
+speedLabel.Size = UDim2.new(0, 120, 0, 35)
+speedLabel.Position = UDim2.new(0, 10, 0, 0)
+speedLabel.Text = "⚡ " .. settings.speedValue
+speedLabel.TextSize = 16
+speedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+speedLabel.BackgroundTransparency = 1
+speedLabel.Font = Enum.Font.Gotham
+speedLabel.Parent = speedFrame
+
+local speedUp = Instance.new("TextButton")
+speedUp.Size = UDim2.new(0, 40, 0, 35)
+speedUp.Position = UDim2.new(0, 180, 0, 0)
+speedUp.Text = "+"
+speedUp.TextSize = 20
+speedUp.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+speedUp.TextColor3 = Color3.fromRGB(255, 255, 255)
+speedUp.BorderSizePixel = 0
+speedUp.Parent = speedFrame
+local upCorner = Instance.new("UICorner")
+upCorner.CornerRadius = UDim.new(0, 6)
+upCorner.Parent = speedUp
+speedUp.MouseButton1Click:Connect(function()
+    settings.speedValue = math.min(settings.speedValue + 10, 200)
+    speedLabel.Text = "⚡ " .. settings.speedValue
+end)
+
+local speedDown = Instance.new("TextButton")
+speedDown.Size = UDim2.new(0, 40, 0, 35)
+speedDown.Position = UDim2.new(0, 225, 0, 0)
+speedDown.Text = "-"
+speedDown.TextSize = 20
+speedDown.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+speedDown.TextColor3 = Color3.fromRGB(255, 255, 255)
+speedDown.BorderSizePixel = 0
+speedDown.Parent = speedFrame
+local downCorner = Instance.new("UICorner")
+downCorner.CornerRadius = UDim.new(0, 6)
+downCorner.Parent = speedDown
+speedDown.MouseButton1Click:Connect(function()
+    settings.speedValue = math.max(settings.speedValue - 10, 10)
+    speedLabel.Text = "⚡ " .. settings.speedValue
+end)
+
+-- ===== ОПРЕДЕЛЕНИЕ РОЛИ =====
+function updateRole()
+    if char and char:FindFirstChild("Head") then
+        local head = char.Head
+        for _, obj in pairs(head:GetChildren()) do
+            if obj:IsA("BillboardGui") and obj.Name == "Role" then
+                settings.role = obj.Text
+                roleLabel.Text = "Роль: " .. settings.role
+                roleLabel.TextColor3 = settings.role == "Murderer" and Color3.fromRGB(255, 0, 0) or 
+                                       settings.role == "Sheriff" and Color3.fromRGB(0, 100, 255) or 
+                                       Color3.fromRGB(0, 255, 0)
+                
+                -- Обновляем кнопку оружия
+                if settings.role == "Murderer" then
+                    weaponBtn.Text = "🔪 Кинжал (Убийца)"
+                    weaponBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+                    settings.weapon = "Knife"
+                elseif settings.role == "Sheriff" then
+                    weaponBtn.Text = "🔫 Пистолет (Шериф)"
+                    weaponBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 150)
+                    settings.weapon = "Gun"
+                else
+                    weaponBtn.Text = "❌ Нет оружия"
+                    weaponBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+                    settings.weapon = nil
+                end
+                return
+            end
+        end
+    end
+    roleLabel.Text = "Роль: Ожидание..."
+    roleLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+end
+
+-- Обновляем роль при смене персонажа
+player.CharacterAdded:Connect(function(newChar)
+    char = newChar
+    hrp = char:WaitForChild("HumanoidRootPart")
+    humanoid = char:WaitForChild("Humanoid")
+    wait(1)
+    updateRole()
+end)
+
+-- Постоянное обновление роли
+game:GetService("RunService").RenderStepped:Connect(function()
+    if not settings.role or settings.role == "Ожидание..." then
+        updateRole()
+    end
+end)
+
+-- ===== ESP СКВОЗЬ СТЕНЫ =====
+local espObjects = {}
+local espConnections = {}
+
+function startESP()
+    local function addESP(plr)
+        if plr == player then return end
+        if plr.Character then
+            local highlight = Instance.new("Highlight")
+            highlight.Adornee = plr.Character
+            highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop -- Сквозь стены!
+            highlight.FillTransparency = 0.3
+            highlight.OutlineTransparency = 0.2
+            
+            -- Определяем роль игрока
+            local role = "Innocent"
+            if plr.Character and plr.Character:FindFirstChild("Head") then
+                local head = plr.Character.Head
+                for _, obj in pairs(head:GetChildren()) do
+                    if obj:IsA("BillboardGui") and obj.Name == "Role" then
+                        role = obj.Text
+                        break
+                    end
+                end
+            end
+            
+            if role == "Murderer" then
+                highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                highlight.OutlineColor = Color3.fromRGB(255, 50, 50)
+            elseif role == "Sheriff" then
+                highlight.FillColor = Color3.fromRGB(0, 100, 255)
+                highlight.OutlineColor = Color3.fromRGB(50, 150, 255)
+            else
+                highlight.FillColor = Color3.fromRGB(0, 255, 0)
+                highlight.OutlineColor = Color3.fromRGB(50, 255, 50)
+            end
+            
+            highlight.Parent = plr.Character
+            table.insert(espObjects, highlight)
+        end
+    end
+    
+    for _, plr in pairs(Players:GetPlayers()) do
+        addESP(plr)
+    end
+    
+    espConnections[1] = Players.PlayerAdded:Connect(function(plr)
+        plr.CharacterAdded:Connect(function(char)
+            wait(0.5)
+            if settings.espEnabled then
+                local highlight = Instance.new("Highlight")
+                highlight.Adornee = char
+                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                highlight.FillTransparency = 0.3
+                highlight.OutlineTransparency = 0.2
+                
+                local role = "Innocent"
+                if char and char:FindFirstChild("Head") then
+                    local head = char.Head
+                    for _, obj in pairs(head:GetChildren()) do
+                        if obj:IsA("BillboardGui") and obj.Name == "Role" then
+                            role = obj.Text
+                            break
+                        end
+                    end
+                end
+                
+                if role == "Murderer" then
+                    highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                    highlight.OutlineColor = Color3.fromRGB(255, 50, 50)
+                elseif role == "Sheriff" then
+                    highlight.FillColor = Color3.fromRGB(0, 100, 255)
+                    highlight.OutlineColor = Color3.fromRGB(50, 150, 255)
+                else
+                    highlight.FillColor = Color3.fromRGB(0, 255, 0)
+                    highlight.OutlineColor = Color3.fromRGB(50, 255, 50)
+                end
+                
+                highlight.Parent = char
+                table.insert(espObjects, highlight)
+            end
+        end)
+    end)
+end
+
+function stopESP()
+    for _, obj in pairs(espObjects) do
+        if obj then obj:Destroy() end
+    end
+    espObjects = {}
+    for _, conn in pairs(espConnections) do
+        if conn then conn:Disconnect() end
+    end
+    espConnections = {}
+end
+
+-- ===== AIMBOT =====
+local aimConnection = nil
+
+function startAimbot()
+    aimConnection = RunService.RenderStepped:Connect(function()
+        if not settings.aimEnabled then 
+            if aimConnection then aimConnection:Disconnect() end
+            return 
+        end
+        
+        local target = nil
+        local minDist = 500
+        local playerRole = settings.role
+        
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr ~= player and plr.Character and plr.Character:FindFirstChild("Head") then
+                local head = plr.Character.Head
+                local dist = (head.Position - hrp.Position).Magnitude
+                local targetRole = "Innocent"
+                
+                for _, obj in pairs(head:GetChildren()) do
+                    if obj:IsA("BillboardGui") and obj.Name == "Role" then
+                        targetRole = obj.Text
+                        break
+                    end
+                end
+                
+                if playerRole == "Murderer" then
+                    if (targetRole == "Sheriff" or targetRole == "Innocent") and dist < minDist then
+                        minDist = dist
+                        target = head
+                    end
+                elseif playerRole == "Sheriff" then
+                    if targetRole == "Murderer" and dist < minDist then
+                        minDist = dist
+                        target = head
+                    end
+                end
+            end
+        end
+        
+        if target then
+            cam.CFrame = CFrame.new(cam.CFrame.Position, target.Position)
+        end
+    end)
+end
+
+function stopAimbot()
+    if aimConnection then
+        aimConnection:Disconnect()
+        aimConnection = nil
+    end
+end
+
+-- ===== SPEED GLITCH =====
+local speedConnection = nil
+
+function startSpeed()
+    speedConnection = RunService.RenderStepped:Connect(function()
+        if not settings.speedEnabled or not hrp then 
+            if speedConnection then speedConnection:Disconnect() end
+            return 
+        end
+        
+        local moveDir = humanoid.MoveDirection
+        if moveDir.Magnitude > 0 then
+            hrp.Velocity = moveDir * settings.speedValue
+        end
+    end)
+end
+
+function stopSpeed()
+    if speedConnection then
+        speedConnection:Disconnect()
+        speedConnection = nil
+    end
+    if hrp then
+        hrp.Velocity = Vector3.new(0, 0, 0)
+    end
+end
+
+-- ===== АВТО-ПОДБОР ПИСТОЛЕТА =====
+local pickupConnection = nil
+
+function startAutoPickup()
+    pickupConnection = RunService.RenderStepped:Connect(function()
+        if not settings.autoPickup then 
+            if pickupConnection then pickupConnection:Disconnect() end
+            return 
+        end
+        
+        -- Ищем пистолет на карте
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("Tool") and obj.Name:lower():find("gun") or obj.Name:lower():find("pistol") then
+                if obj.Parent ~= char and (hrp.Position - obj.Handle.Position).Magnitude < 10 then
+                    -- Подбираем пистолет
+                    local tool = obj
+                    tool.Handle:Destroy()
+                    tool.Parent = char
+                    break
+                end
+            end
+        end
+    end)
+end
+
+-- Запускаем авто-подбор при включении
+pickupBtn.MouseButton1Click:Connect(function()
+    settings.autoPickup = not settings.autoPickup
+    pickupBtn.Text = (settings.autoPickup and "✅ " or "🔫 ") .. "Авто-подбор пистолета"
+    pickupBtn.BackgroundColor3 = settings.autoPickup and Color3.fromRGB(0, 120, 0) or Color3.fromRGB(35, 35, 50)
+    if settings.autoPickup then
+        startAutoPickup()
+    else
+        if pickupConnection then
+            pickupConnection:Disconnect()
+            pickupConnection = nil
+        end
+    end
+end)
+
+-- ===== КНОПКА ОРУЖИЯ (Атака) =====
+weaponBtn.MouseButton1Click:Connect(function()
+    if not settings.weapon then return end
+    
+    local tool = char:FindFirstChildOfClass("Tool")
+    if tool then
+        -- Используем оружие
+        tool:Activate()
+    end
+end)
+
+print("✦ RYZEN MM2 ULTIMATE ЗАГРУЖЕН ✦")
+print("ESP работает сквозь стены, Aimbot автоматический")
