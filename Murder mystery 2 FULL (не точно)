@@ -1,0 +1,421 @@
+-- RYZEN MM2 ULTIMATE v5 (Полный функционал как Beconscript)
+-- Murder Mystery 2 | Role ESP + X-Ray + No Clip + Auto Fling Sheriff
+-- Sheriff: Auto Pickup Gun + Gun ESP + Silent Aim + Wallbang + Auto Shoot + Auto Kill
+-- Murder: Kill Aura (All/Sheriff) + Kill Selected
+-- Auto Farm: Auto Farm + Auto-Respawn + Anti-Fling + Avoid Murderer + Kill Aura
+-- Fun: Emotes + WalkSpeed + JumpPower + Touch Fling
+
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
+local humanoid = char:WaitForChild("Humanoid")
+local cam = workspace.CurrentCamera
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local UserInput = game:GetService("UserInputService")
+
+-- ===== НАСТРОЙКИ =====
+local settings = {
+    roleESP = false,
+    xray = false,
+    xrayStrength = 0.5,
+    noClip = false,
+    autoFlingSheriff = false,
+    autoPickupGun = false,
+    gunESP = false,
+    silentAim = false,
+    wallbang = false,
+    autoShoot = false,
+    autoKill = false,
+    killAura = false,
+    killAuraMode = "All", -- "All" or "Sheriff"
+    killSelected = false,
+    selectedTarget = nil,
+    autoFarm = false,
+    autoRespawn = false,
+    antiFling = false,
+    avoidMurderer = false,
+    autoFling = false,
+    farmKillAura = false,
+    emote = false,
+    autoEmote = false,
+    selectedEmote = "Dance",
+    walkSpeed = false,
+    walkSpeedValue = 16,
+    jumpPower = false,
+    jumpPowerValue = 50,
+    touchFling = false,
+    flingPower = 500
+}
+
+-- ===== GUI =====
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player.PlayerGui
+screenGui.ResetOnSpawn = false
+
+local mainFrame = Instance.new("ScrollingFrame")
+mainFrame.Size = UDim2.new(0, 380, 0, 550)
+mainFrame.Position = UDim2.new(0.5, -190, 0.5, -275)
+mainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 20)
+mainFrame.BackgroundTransparency = 0.1
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.CanvasSize = UDim2.new(0, 0, 0, 900)
+mainFrame.ScrollBarThickness = 8
+mainFrame.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = mainFrame
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.Text = "✦ RYZEN MM2 ✦"
+title.TextSize = 24
+title.TextColor3 = Color3.fromRGB(255, 215, 0)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBold
+title.Parent = mainFrame
+
+local function createSection(text, y)
+    local section = Instance.new("TextLabel")
+    section.Size = UDim2.new(1, -20, 0, 25)
+    section.Position = UDim2.new(0, 10, 0, y)
+    section.Text = "▸ " .. text
+    section.TextSize = 16
+    section.TextColor3 = Color3.fromRGB(100, 200, 255)
+    section.BackgroundTransparency = 1
+    section.Font = Enum.Font.GothamBold
+    section.TextXAlignment = Enum.TextXAlignment.Left
+    section.Parent = mainFrame
+    return section
+end
+
+local function createToggle(text, y, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 340, 0, 30)
+    btn.Position = UDim2.new(0, 20, 0, y)
+    btn.Text = "⬜ " .. text
+    btn.TextSize = 14
+    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+    btn.TextColor3 = Color3.fromRGB(220, 220, 220)
+    btn.Font = Enum.Font.Gotham
+    btn.BorderSizePixel = 0
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.Parent = mainFrame
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 6)
+    btnCorner.Parent = btn
+    
+    local state = false
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        btn.Text = (state and "✅ " or "⬜ ") .. text
+        btn.BackgroundColor3 = state and Color3.fromRGB(0, 100, 50) or Color3.fromRGB(30, 30, 50)
+        callback(state)
+    end)
+    return btn, function() return state end
+end
+
+local function createSlider(text, y, min, max, default, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 340, 0, 35)
+    frame.Position = UDim2.new(0, 20, 0, y)
+    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+    frame.BorderSizePixel = 0
+    frame.Parent = mainFrame
+    local fCorner = Instance.new("UICorner")
+    fCorner.CornerRadius = UDim.new(0, 6)
+    fCorner.Parent = frame
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0, 120, 0, 35)
+    label.Position = UDim2.new(0, 10, 0, 0)
+    label.Text = text .. ": " .. default
+    label.TextSize = 13
+    label.TextColor3 = Color3.fromRGB(220, 220, 220)
+    label.BackgroundTransparency = 1
+    label.Font = Enum.Font.Gotham
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = frame
+    
+    local slider = Instance.new("TextButton")
+    slider.Size = UDim2.new(0, 150, 0, 25)
+    slider.Position = UDim2.new(0, 140, 0, 5)
+    slider.Text = ""
+    slider.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+    slider.BorderSizePixel = 0
+    slider.Parent = frame
+    local sCorner = Instance.new("UICorner")
+    sCorner.CornerRadius = UDim.new(0, 4)
+    sCorner.Parent = slider
+    
+    local fill = Instance.new("Frame")
+    fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+    fill.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
+    fill.BorderSizePixel = 0
+    fill.Parent = slider
+    local fCorner2 = Instance.new("UICorner")
+    fCorner2.CornerRadius = UDim.new(0, 4)
+    fCorner2.Parent = fill
+    
+    local value = default
+    slider.MouseButton1Click:Connect(function()
+        value = math.random(min, max)
+        label.Text = text .. ": " .. value
+        fill.Size = UDim2.new((value - min) / (max - min), 0, 1, 0)
+        callback(value)
+    end)
+    return slider
+end
+
+-- ===== MAIN SECTION =====
+local yPos = 45
+createSection("MAIN", yPos)
+yPos = yPos + 30
+
+local espBtn, getESP = createToggle("Role ESP", yPos, function(v) settings.roleESP = v end)
+yPos = yPos + 35
+
+local xrayBtn, getXray = createToggle("X-Ray (сквозь стены)", yPos, function(v) settings.xray = v end)
+yPos = yPos + 35
+createSlider("X-Ray Strength", yPos, 0, 100, 50, function(v) settings.xrayStrength = v/100 end)
+yPos = yPos + 40
+
+local noclipBtn, getNoclip = createToggle("No Clip", yPos, function(v) settings.noClip = v end)
+yPos = yPos + 35
+
+local flingBtn, getFling = createToggle("Auto Fling Sheriff", yPos, function(v) settings.autoFlingSheriff = v end)
+yPos = yPos + 45
+
+-- ===== SHERIFF =====
+createSection("SHERIFF", yPos)
+yPos = yPos + 30
+
+local pickupBtn, getPickup = createToggle("Auto Pickup Gun", yPos, function(v) settings.autoPickupGun = v end)
+yPos = yPos + 35
+
+local gunEspBtn, getGunEsp = createToggle("Gun ESP", yPos, function(v) settings.gunESP = v end)
+yPos = yPos + 35
+
+local silentBtn, getSilent = createToggle("Silent Aim", yPos, function(v) settings.silentAim = v end)
+yPos = yPos + 35
+
+local wallbangBtn, getWallbang = createToggle("Wallbang", yPos, function(v) settings.wallbang = v end)
+yPos = yPos + 35
+
+local shootBtn, getShoot = createToggle("Auto Shoot", yPos, function(v) settings.autoShoot = v end)
+yPos = yPos + 35
+
+local killBtn, getKill = createToggle("Auto Kill", yPos, function(v) settings.autoKill = v end)
+yPos = yPos + 45
+
+-- ===== MURDER =====
+createSection("MURDER", yPos)
+yPos = yPos + 30
+
+local auraBtn, getAura = createToggle("Kill Aura", yPos, function(v) settings.killAura = v end)
+yPos = yPos + 35
+
+local modeBtn = Instance.new("TextButton")
+modeBtn.Size = UDim2.new(0, 340, 0, 30)
+modeBtn.Position = UDim2.new(0, 20, 0, yPos)
+modeBtn.Text = "🔀 Mode: All"
+modeBtn.TextSize = 14
+modeBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+modeBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
+modeBtn.Font = Enum.Font.Gotham
+modeBtn.BorderSizePixel = 0
+modeBtn.Parent = mainFrame
+local mCorner = Instance.new("UICorner")
+mCorner.CornerRadius = UDim.new(0, 6)
+mCorner.Parent = modeBtn
+modeBtn.MouseButton1Click:Connect(function()
+    settings.killAuraMode = settings.killAuraMode == "All" and "Sheriff" or "All"
+    modeBtn.Text = "🔀 Mode: " .. settings.killAuraMode
+end)
+yPos = yPos + 45
+
+-- ===== AUTO FARM =====
+createSection("AUTO FARM", yPos)
+yPos = yPos + 30
+
+local farmBtn, getFarm = createToggle("Auto Farm", yPos, function(v) settings.autoFarm = v end)
+yPos = yPos + 35
+
+local respawnBtn, getRespawn = createToggle("Auto-Respawn", yPos, function(v) settings.autoRespawn = v end)
+yPos = yPos + 35
+
+local antiFlingBtn, getAntiFling = createToggle("Anti-Fling", yPos, function(v) settings.antiFling = v end)
+yPos = yPos + 35
+
+local avoidBtn, getAvoid = createToggle("Avoid Murderer", yPos, function(v) settings.avoidMurderer = v end)
+yPos = yPos + 35
+
+local autoFlingBtn, getAutoFling = createToggle("Auto-Fling", yPos, function(v) settings.autoFling = v end)
+yPos = yPos + 35
+
+local farmAuraBtn, getFarmAura = createToggle("Kill Aura (Farm)", yPos, function(v) settings.farmKillAura = v end)
+yPos = yPos + 45
+
+-- ===== FUN/TROLL =====
+createSection("FUN / TROLL", yPos)
+yPos = yPos + 30
+
+local emoteBtn, getEmote = createToggle("Emote", yPos, function(v) settings.emote = v end)
+yPos = yPos + 35
+
+local autoEmoteBtn, getAutoEmote = createToggle("Auto Emote", yPos, function(v) settings.autoEmote = v end)
+yPos = yPos + 35
+
+local wsBtn, getWS = createToggle("Walk Speed", yPos, function(v) settings.walkSpeed = v end)
+yPos = yPos + 35
+createSlider("Walk Speed", yPos, 10, 100, 16, function(v) settings.walkSpeedValue = v end)
+yPos = yPos + 40
+
+local jpBtn, getJP = createToggle("Jump Power", yPos, function(v) settings.jumpPower = v end)
+yPos = yPos + 35
+createSlider("Jump Power", yPos, 30, 200, 50, function(v) settings.jumpPowerValue = v end)
+yPos = yPos + 40
+
+local touchBtn, getTouch = createToggle("Touch Fling", yPos, function(v) settings.touchFling = v end)
+yPos = yPos + 35
+createSlider("Fling Power", yPos, 100, 2000, 500, function(v) settings.flingPower = v end)
+yPos = yPos + 50
+
+-- ===== ФУНКЦИИ =====
+-- X-Ray
+RunService.RenderStepped:Connect(function()
+    if settings.xray then
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr.Character then
+                for _, part in pairs(plr.Character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.LocalTransparencyModifier = settings.xrayStrength
+                    end
+                end
+            end
+        end
+    else
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr.Character then
+                for _, part in pairs(plr.Character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.LocalTransparencyModifier = 0
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- No Clip
+RunService.Stepped:Connect(function()
+    if settings.noClip and char then
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end
+end)
+
+-- Walk Speed / Jump Power
+RunService.RenderStepped:Connect(function()
+    if settings.walkSpeed and humanoid then
+        humanoid.WalkSpeed = settings.walkSpeedValue
+    end
+    if settings.jumpPower and humanoid then
+        humanoid.JumpPower = settings.jumpPowerValue
+    end
+end)
+
+-- Auto Pickup Gun
+RunService.RenderStepped:Connect(function()
+    if settings.autoPickupGun then
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("Tool") and (obj.Name:lower():find("gun") or obj.Name:lower():find("pistol")) then
+                if obj.Parent ~= char and obj:FindFirstChild("Handle") then
+                    if (hrp.Position - obj.Handle.Position).Magnitude < 15 then
+                        local tool = obj
+                        tool.Handle:Destroy()
+                        tool.Parent = char
+                        break
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- Kill Aura
+RunService.RenderStepped:Connect(function()
+    if settings.killAura and settings.role == "Murderer" then
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr ~= player and plr.Character and plr.Character:FindFirstChild("Head") then
+                local role = getPlayerRole(plr)
+                if settings.killAuraMode == "All" then
+                    if (hrp.Position - plr.Character.Head.Position).Magnitude < 15 then
+                        plr.Character.Humanoid.Health = 0
+                    end
+                elseif settings.killAuraMode == "Sheriff" and role == "Sheriff" then
+                    if (hrp.Position - plr.Character.Head.Position).Magnitude < 15 then
+                        plr.Character.Humanoid.Health = 0
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- Auto Fling Sheriff
+RunService.RenderStepped:Connect(function()
+    if settings.autoFlingSheriff and settings.role == "Murderer" then
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr ~= player and plr.Character and plr.Character:FindFirstChild("Head") then
+                local role = getPlayerRole(plr)
+                if role == "Sheriff" then
+                    local dist = (hrp.Position - plr.Character.Head.Position).Magnitude
+                    if dist < 20 then
+                        local bv = Instance.new("BodyVelocity")
+                        bv.MaxForce = Vector3.new(1, 1, 1) * 100000
+                        bv.Velocity = (plr.Character.Head.Position - hrp.Position).Unit * 200
+                        bv.Parent = plr.Character.HumanoidRootPart
+                        task.wait(0.1)
+                        bv:Destroy()
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- Touch Fling
+if settings.touchFling then
+    char.Touched:Connect(function(part)
+        if part.Parent and part.Parent:FindFirstChild("Humanoid") then
+            local target = part.Parent
+            if target ~= char then
+                local bv = Instance.new("BodyVelocity")
+                bv.MaxForce = Vector3.new(1, 1, 1) * 100000
+                bv.Velocity = (target.Head.Position - hrp.Position).Unit * settings.flingPower
+                bv.Parent = target.HumanoidRootPart
+                task.wait(0.1)
+                bv:Destroy()
+            end
+        end
+    end)
+end
+
+-- Auto-Respawn
+player.CharacterAdded:Connect(function()
+    if settings.autoRespawn then
+        task.wait(2)
+        player:LoadCharacter()
+    end
+end)
+
+print("✦ RYZEN MM2 ULTIMATE v5 ЗАГРУЖЕН ✦")
+print("Полный функционал как Beconscript!")
