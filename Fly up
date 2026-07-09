@@ -1,0 +1,174 @@
+-- Ryzen Mobile Hover Fly + Высота (сенсорные кнопки)
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
+local humanoid = char:WaitForChild("Humanoid")
+
+local flyEnabled = false
+local speed = 40
+local verticalSpeed = 5 -- скорость подъёма/спуска
+local currentHeight = hrp.Position.Y
+local bodyVelocity = nil
+local flyConnection = nil
+
+-- GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player.PlayerGui
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 250, 0, 250)
+mainFrame.Position = UDim2.new(0.5, -125, 0.5, -125)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.BackgroundTransparency = 0.15
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Text = "Ryzen Fly + Height"
+title.TextColor3 = Color3.fromRGB(255, 200, 0)
+title.BackgroundTransparency = 1
+title.Parent = mainFrame
+
+-- Кнопка включения полёта
+local flyBtn = Instance.new("TextButton")
+flyBtn.Size = UDim2.new(0, 200, 0, 40)
+flyBtn.Position = UDim2.new(0, 25, 0, 40)
+flyBtn.Text = "ВКЛЮЧИТЬ ПОЛЁТ"
+flyBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+flyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+flyBtn.Parent = mainFrame
+
+-- Кнопка ПОДНЯТЬСЯ (↑)
+local upBtn = Instance.new("TextButton")
+upBtn.Size = UDim2.new(0, 80, 0, 60)
+upBtn.Position = UDim2.new(0, 25, 0, 100)
+upBtn.Text = "↑"
+upBtn.TextSize = 30
+upBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+upBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+upBtn.Parent = mainFrame
+
+-- Кнопка ОПУСТИТЬСЯ (↓)
+local downBtn = Instance.new("TextButton")
+downBtn.Size = UDim2.new(0, 80, 0, 60)
+downBtn.Position = UDim2.new(0, 145, 0, 100)
+downBtn.Text = "↓"
+downBtn.TextSize = 30
+downBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
+downBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+downBtn.Parent = mainFrame
+
+-- Индикатор высоты
+local heightLabel = Instance.new("TextLabel")
+heightLabel.Size = UDim2.new(0, 200, 0, 30)
+heightLabel.Position = UDim2.new(0, 25, 0, 180)
+heightLabel.Text = "Высота: " .. math.round(currentHeight)
+heightLabel.BackgroundTransparency = 1
+heightLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+heightLabel.Parent = mainFrame
+
+-- ===== ВКЛЮЧЕНИЕ ПОЛЁТА =====
+flyBtn.MouseButton1Click:Connect(function()
+    flyEnabled = not flyEnabled
+    
+    if flyEnabled then
+        flyBtn.Text = "ОТКЛЮЧИТЬ ПОЛЁТ"
+        flyBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+        
+        -- Запоминаем текущую высоту
+        currentHeight = hrp.Position.Y
+        
+        -- Отключаем гравитацию
+        humanoid.PlatformStand = true
+        
+        -- Создаём BodyVelocity
+        bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.MaxForce = Vector3.new(1, 1, 1) * 100000
+        bodyVelocity.Parent = hrp
+        
+        -- Основной цикл полёта
+        flyConnection = game:GetService("RunService").RenderStepped:Connect(function()
+            if not flyEnabled or not hrp then 
+                if bodyVelocity then bodyVelocity:Destroy() end
+                flyConnection:Disconnect()
+                return 
+            end
+            
+            -- Движение от джойстика
+            local moveDirection = humanoid.MoveDirection
+            if moveDirection.Magnitude > 0 then
+                bodyVelocity.Velocity = moveDirection * speed
+            else
+                bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+            end
+            
+            -- Удержание на текущей высоте
+            local currentPos = hrp.Position
+            local heightDiff = currentHeight - currentPos.Y
+            
+            -- Если отклонился больше чем на 0.5 студии — возвращаем
+            if math.abs(heightDiff) > 0.5 then
+                hrp.Position = Vector3.new(currentPos.X, currentHeight, currentPos.Z)
+            end
+            
+            -- Обновляем индикатор
+            heightLabel.Text = "Высота: " .. math.round(currentHeight)
+        end)
+        
+    else
+        flyBtn.Text = "ВКЛЮЧИТЬ ПОЛЁТ"
+        flyBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        
+        if bodyVelocity then 
+            bodyVelocity:Destroy()
+            bodyVelocity = nil
+        end
+        if flyConnection then
+            flyConnection:Disconnect()
+            flyConnection = nil
+        end
+        humanoid.PlatformStand = false
+    end
+end)
+
+-- ===== ПОДНЯТЬСЯ (↑) =====
+upBtn.MouseButton1Click:Connect(function()
+    if flyEnabled then
+        currentHeight = currentHeight + verticalSpeed
+        hrp.Position = Vector3.new(hrp.Position.X, currentHeight, hrp.Position.Z)
+    end
+end)
+
+-- Удержание для непрерывного подъёма
+upBtn.MouseButton1Down:Connect(function()
+    if flyEnabled then
+        while flyEnabled and upBtn do
+            currentHeight = currentHeight + verticalSpeed
+            hrp.Position = Vector3.new(hrp.Position.X, currentHeight, hrp.Position.Z)
+            wait(0.1)
+        end
+    end
+end)
+
+-- ===== ОПУСТИТЬСЯ (↓) =====
+downBtn.MouseButton1Click:Connect(function()
+    if flyEnabled then
+        currentHeight = currentHeight - verticalSpeed
+        hrp.Position = Vector3.new(hrp.Position.X, currentHeight, hrp.Position.Z)
+    end
+end)
+
+-- Удержание для непрерывного спуска
+downBtn.MouseButton1Down:Connect(function()
+    if flyEnabled then
+        while flyEnabled and downBtn do
+            currentHeight = currentHeight - verticalSpeed
+            hrp.Position = Vector3.new(hrp.Position.X, currentHeight, hrp.Position.Z)
+            wait(0.1)
+        end
+    end
+end)
+
+print("Hover Fly + Height загружен!")
