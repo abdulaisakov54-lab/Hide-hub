@@ -1,0 +1,281 @@
+-- Ryzen MM2 Mega Script v1 (Mobile/PC)
+-- Murder Mystery 2 | ESP + Aimbot + Speed Glitch
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
+local humanoid = char:WaitForChild("Humanoid")
+local cam = workspace.CurrentCamera
+local UserInput = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+-- ===== НАСТРОЙКИ =====
+local settings = {
+    espEnabled = false,
+    aimEnabled = false,
+    speedEnabled = false,
+    speedValue = 50,
+    roleESP = {
+        murderer = Color3.fromRGB(255, 0, 0),
+        sheriff = Color3.fromRGB(0, 100, 255),
+        innocent = Color3.fromRGB(0, 255, 0)
+    }
+}
+
+-- ===== GUI =====
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player.PlayerGui
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 280, 0, 350)
+mainFrame.Position = UDim2.new(0.5, -140, 0.5, -175)
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+mainFrame.BackgroundTransparency = 0.1
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Text = "Ryzen MM2"
+title.TextColor3 = Color3.fromRGB(255, 200, 0)
+title.BackgroundTransparency = 1
+title.Parent = mainFrame
+
+-- Функция создания кнопок
+local function createBtn(text, y, color, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 230, 0, 40)
+    btn.Position = UDim2.new(0, 25, 0, y)
+    btn.Text = text
+    btn.BackgroundColor3 = color or Color3.fromRGB(60, 60, 60)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Parent = mainFrame
+    btn.MouseButton1Click:Connect(callback)
+    return btn
+end
+
+local espBtn = createBtn("ESP: OFF", 40, Color3.fromRGB(60,60,60), function()
+    settings.espEnabled = not settings.espEnabled
+    espBtn.Text = settings.espEnabled and "ESP: ON" or "ESP: OFF"
+    espBtn.BackgroundColor3 = settings.espEnabled and Color3.fromRGB(0,150,0) or Color3.fromRGB(60,60,60)
+    if settings.espEnabled then startESP() else stopESP() end
+end)
+
+local aimBtn = createBtn("AIMBOT: OFF", 90, Color3.fromRGB(60,60,60), function()
+    settings.aimEnabled = not settings.aimEnabled
+    aimBtn.Text = settings.aimEnabled and "AIMBOT: ON" or "AIMBOT: OFF"
+    aimBtn.BackgroundColor3 = settings.aimEnabled and Color3.fromRGB(0,150,0) or Color3.fromRGB(60,60,60)
+    if settings.aimEnabled then startAimbot() else stopAimbot() end
+end)
+
+local speedBtn = createBtn("SPEED: OFF", 140, Color3.fromRGB(60,60,60), function()
+    settings.speedEnabled = not settings.speedEnabled
+    speedBtn.Text = settings.speedEnabled and "SPEED: ON" or "SPEED: OFF"
+    speedBtn.BackgroundColor3 = settings.speedEnabled and Color3.fromRGB(0,150,0) or Color3.fromRGB(60,60,60)
+    if settings.speedEnabled then startSpeed() else stopSpeed() end
+end)
+
+-- Регулировка скорости
+local speedLabel = Instance.new("TextLabel")
+speedLabel.Size = UDim2.new(0, 150, 0, 30)
+speedLabel.Position = UDim2.new(0, 25, 0, 195)
+speedLabel.Text = "Speed: " .. settings.speedValue
+speedLabel.BackgroundTransparency = 1
+speedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+speedLabel.Parent = mainFrame
+
+local speedUp = Instance.new("TextButton")
+speedUp.Size = UDim2.new(0, 50, 0, 30)
+speedUp.Position = UDim2.new(0, 190, 0, 195)
+speedUp.Text = "+"
+speedUp.BackgroundColor3 = Color3.fromRGB(60,60,60)
+speedUp.TextColor3 = Color3.fromRGB(255,255,255)
+speedUp.Parent = mainFrame
+speedUp.MouseButton1Click:Connect(function()
+    settings.speedValue = math.min(settings.speedValue + 10, 200)
+    speedLabel.Text = "Speed: " .. settings.speedValue
+end)
+
+local speedDown = Instance.new("TextButton")
+speedDown.Size = UDim2.new(0, 50, 0, 30)
+speedDown.Position = UDim2.new(0, 240, 0, 195)
+speedDown.Text = "-"
+speedDown.BackgroundColor3 = Color3.fromRGB(60,60,60)
+speedDown.TextColor3 = Color3.fromRGB(255,255,255)
+speedDown.Parent = mainFrame
+speedDown.MouseButton1Click:Connect(function()
+    settings.speedValue = math.max(settings.speedValue - 10, 10)
+    speedLabel.Text = "Speed: " .. settings.speedValue
+end)
+
+-- ===== ESP =====
+local espObjects = {}
+local espConnections = {}
+
+function startESP()
+    local function getRole(plr)
+        if plr.Character and plr.Character:FindFirstChild("Head") then
+            local head = plr.Character.Head
+            for _, obj in pairs(head:GetChildren()) do
+                if obj:IsA("BillboardGui") and obj.Name == "Role" then
+                    return obj.Text
+                end
+            end
+        end
+        return "Innocent"
+    end
+    
+    local function addESP(plr)
+        if plr == player then return end
+        if plr.Character then
+            local highlight = Instance.new("Highlight")
+            highlight.Adornee = plr.Character
+            local role = getRole(plr)
+            if role == "Murderer" then
+                highlight.FillColor = settings.roleESP.murderer
+            elseif role == "Sheriff" then
+                highlight.FillColor = settings.roleESP.sheriff
+            else
+                highlight.FillColor = settings.roleESP.innocent
+            end
+            highlight.FillTransparency = 0.4
+            highlight.OutlineColor = Color3.fromRGB(255,255,255)
+            highlight.Parent = plr.Character
+            table.insert(espObjects, highlight)
+        end
+    end
+    
+    for _, plr in pairs(game.Players:GetPlayers()) do
+        addESP(plr)
+    end
+    
+    espConnections[1] = game.Players.PlayerAdded:Connect(function(plr)
+        plr.CharacterAdded:Connect(function(char)
+            wait(0.5)
+            if settings.espEnabled then
+                local highlight = Instance.new("Highlight")
+                highlight.Adornee = char
+                local role = getRole(plr)
+                if role == "Murderer" then
+                    highlight.FillColor = settings.roleESP.murderer
+                elseif role == "Sheriff" then
+                    highlight.FillColor = settings.roleESP.sheriff
+                else
+                    highlight.FillColor = settings.roleESP.innocent
+                end
+                highlight.FillTransparency = 0.4
+                highlight.OutlineColor = Color3.fromRGB(255,255,255)
+                highlight.Parent = char
+                table.insert(espObjects, highlight)
+            end
+        end)
+    end)
+end
+
+function stopESP()
+    for _, obj in pairs(espObjects) do
+        if obj then obj:Destroy() end
+    end
+    espObjects = {}
+    for _, conn in pairs(espConnections) do
+        if conn then conn:Disconnect() end
+    end
+    espConnections = {}
+end
+
+-- ===== AIMBOT =====
+local aimConnection = nil
+
+function startAimbot()
+    aimConnection = RunService.RenderStepped:Connect(function()
+        if not settings.aimEnabled then 
+            if aimConnection then aimConnection:Disconnect() end
+            return 
+        end
+        
+        local target = nil
+        local minDist = 500
+        local isMurderer = false
+        
+        -- Проверяем роль игрока
+        local playerRole = "Innocent"
+        if char:FindFirstChild("Head") then
+            local head = char.Head
+            for _, obj in pairs(head:GetChildren()) do
+                if obj:IsA("BillboardGui") and obj.Name == "Role" then
+                    playerRole = obj.Text
+                end
+            end
+        end
+        
+        for _, plr in pairs(game.Players:GetPlayers()) do
+            if plr ~= player and plr.Character and plr.Character:FindFirstChild("Head") then
+                local head = plr.Character.Head
+                local dist = (head.Position - hrp.Position).Magnitude
+                local targetRole = "Innocent"
+                
+                for _, obj in pairs(head:GetChildren()) do
+                    if obj:IsA("BillboardGui") and obj.Name == "Role" then
+                        targetRole = obj.Text
+                    end
+                end
+                
+                -- Если мы убийца - цель шериф или невинные
+                if playerRole == "Murderer" then
+                    if targetRole == "Sheriff" or targetRole == "Innocent" then
+                        if dist < minDist then
+                            minDist = dist
+                            target = head
+                        end
+                    end
+                -- Если мы шериф - цель убийца
+                elseif playerRole == "Sheriff" then
+                    if targetRole == "Murderer" and dist < minDist then
+                        minDist = dist
+                        target = head
+                    end
+                end
+            end
+        end
+        
+        if target then
+            cam.CFrame = CFrame.new(cam.CFrame.Position, target.Position)
+        end
+    end)
+end
+
+function stopAimbot()
+    if aimConnection then
+        aimConnection:Disconnect()
+        aimConnection = nil
+    end
+end
+
+-- ===== SPEED GLITCH =====
+local speedConnection = nil
+
+function startSpeed()
+    speedConnection = RunService.RenderStepped:Connect(function()
+        if not settings.speedEnabled or not hrp then 
+            if speedConnection then speedConnection:Disconnect() end
+            return 
+        end
+        
+        local moveDir = humanoid.MoveDirection
+        if moveDir.Magnitude > 0 then
+            hrp.Velocity = moveDir * settings.speedValue
+        end
+    end)
+end
+
+function stopSpeed()
+    if speedConnection then
+        speedConnection:Disconnect()
+        speedConnection = nil
+    end
+    if hrp then
+        hrp.Velocity = Vector3.new(0, 0, 0)
+    end
+end
+
+print("Ryzen MM2 Script Loaded!")
