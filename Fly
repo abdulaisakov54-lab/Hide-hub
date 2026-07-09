@@ -1,0 +1,104 @@
+-- Ryzen Mobile Hover Fly (парит в воздухе)
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
+local humanoid = char:WaitForChild("Humanoid")
+local cam = workspace.CurrentCamera
+
+local flyEnabled = false
+local speed = 40
+local bodyVelocity = nil
+local flyConnection = nil
+
+-- GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player.PlayerGui
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 200, 0, 120)
+mainFrame.Position = UDim2.new(0.5, -100, 0.5, -60)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.BackgroundTransparency = 0.2
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Text = "Ryzen Hover Fly"
+title.TextColor3 = Color3.fromRGB(255, 200, 0)
+title.BackgroundTransparency = 1
+title.Parent = mainFrame
+
+local flyBtn = Instance.new("TextButton")
+flyBtn.Size = UDim2.new(0, 160, 0, 50)
+flyBtn.Position = UDim2.new(0, 20, 0, 40)
+flyBtn.Text = "ВКЛЮЧИТЬ ПОЛЁТ"
+flyBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+flyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+flyBtn.Parent = mainFrame
+
+-- ===== ФУНКЦИЯ ПОЛЁТА =====
+flyBtn.MouseButton1Click:Connect(function()
+    flyEnabled = not flyEnabled
+    
+    if flyEnabled then
+        flyBtn.Text = "ОТКЛЮЧИТЬ ПОЛЁТ"
+        flyBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+        
+        -- Отключаем гравитацию
+        humanoid.PlatformStand = true
+        
+        -- Создаём BodyVelocity для удержания в воздухе
+        bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.MaxForce = Vector3.new(1, 1, 1) * 100000
+        bodyVelocity.Parent = hrp
+        
+        -- Цикл полёта
+        flyConnection = game:GetService("RunService").RenderStepped:Connect(function()
+            if not flyEnabled or not hrp then 
+                if bodyVelocity then bodyVelocity:Destroy() end
+                flyConnection:Disconnect()
+                return 
+            end
+            
+            -- Получаем направление движения персонажа (от джойстика или клавиш)
+            local moveDirection = humanoid.MoveDirection
+            
+            -- Если персонаж двигается, летим в сторону движения
+            if moveDirection.Magnitude > 0 then
+                bodyVelocity.Velocity = moveDirection * speed
+            else
+                -- Если не двигается — просто зависаем на месте
+                bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+            end
+            
+            -- Держим персонажа на одной высоте
+            local currentPos = hrp.Position
+            local targetHeight = currentPos.Y -- запоминаем высоту при активации
+            
+            -- Если персонаж начинает падать, поднимаем обратно
+            if currentPos.Y < targetHeight - 0.5 then
+                hrp.Position = Vector3.new(currentPos.X, targetHeight, currentPos.Z)
+            end
+            
+        end)
+        
+    else
+        flyBtn.Text = "ВКЛЮЧИТЬ ПОЛЁТ"
+        flyBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        
+        -- Отключаем полёт
+        if bodyVelocity then 
+            bodyVelocity:Destroy()
+            bodyVelocity = nil
+        end
+        if flyConnection then
+            flyConnection:Disconnect()
+            flyConnection = nil
+        end
+        humanoid.PlatformStand = false
+    end
+end)
+
+print("Hover Fly загружен! Нажми кнопку для полёта.")
