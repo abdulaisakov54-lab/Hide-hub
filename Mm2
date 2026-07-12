@@ -1,5 +1,5 @@
--- Ryzen MM2 Ultra v4.0 (Mobile/PC) | Murder Mystery 2
--- Функции: ESP + Aimbot + Speed Glitch + Auto-Kill + Auto-Coin + Anti-Cheat + Wallhack + Fly + Silent Aim + Save Config + Жесты
+-- Ryzen Hub v5.0 (RuzHub Style) | Murder Mystery 2
+-- Точная копия меню со скриншотов: тёмная тема, вкладки, переключатели, поиск
 local player = game.Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
 local hrp = char:WaitForChild("HumanoidRootPart")
@@ -9,554 +9,493 @@ local UserInput = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local HttpService = game:GetService("HttpService")
-
--- ===== ЗАЩИТА ОТ АНТИЧИТА =====
-local antiCheatBypass = {
-    active = false
-}
-local function bypassAntiCheat()
-    if antiCheatBypass.active then
-        humanoid.WalkSpeed = 16
-        humanoid.JumpPower = 50
-        for _, v in pairs(ReplicatedStorage:GetDescendants()) do
-            if v:IsA("RemoteEvent") and (v.Name:find("AntiCheat") or v.Name:find("Ban")) then
-                v:Destroy()
-            end
-        end
-        -- Скрываем аномалии движения
-        if hrp then
-            hrp:SetAttribute("RealSpeed", hrp.Velocity.Magnitude)
-        end
-    end
-end
 
 -- ===== НАСТРОЙКИ =====
 local settings = {
     espEnabled = false,
-    aimEnabled = false,
-    speedEnabled = false,
-    autoKillEnabled = false,
-    autoCoinEnabled = false,
-    antiCheatEnabled = false,
-    wallhackEnabled = false,
-    flyEnabled = false,
-    silentAimEnabled = false,
-    speedValue = 50,
-    killRange = 20,
-    flySpeed = 50,
-    roleESP = {
-        murderer = Color3.fromRGB(255, 0, 0),
-        sheriff = Color3.fromRGB(0, 150, 255),
-        innocent = Color3.fromRGB(0, 255, 100)
-    }
+    flickEnabled = false,
+    grabGunEnabled = false,
+    speedGlitchEnabled = false,
+    showGoldBomb = false,
+    showNormalBomb = false,
+    showShootThrow = false,
+    speedValue = 50
 }
 
--- ===== СОХРАНЕНИЕ КОНФИГА =====
-local configKey = "RyzenMM2_Config"
-local function saveConfig()
-    local data = HttpService:JSONEncode(settings)
-    if syn and syn.crypt then
-        syn.crypt.save(configKey, data)
-    else
-        -- Альтернативное сохранение (для большинства executors)
-        if writefile then
-            writefile("RyzenMM2_Config.txt", data)
-        end
-    end
-    print("✅ Конфиг сохранён!")
-end
-
-local function loadConfig()
-    local data = nil
-    if syn and syn.crypt then
-        data = syn.crypt.load(configKey)
-    elseif readfile then
-        data = readfile("RyzenMM2_Config.txt")
-    end
-    if data then
-        local loaded = HttpService:JSONDecode(data)
-        for k, v in pairs(loaded) do
-            settings[k] = v
-        end
-        print("✅ Конфиг загружен!")
-        return true
-    end
-    return false
-end
-
--- Автозагрузка конфига
-loadConfig()
-
--- ===== GUI (МОБИЛЬНАЯ ОПТИМИЗАЦИЯ) =====
+-- ===== ГЛАВНОЕ МЕНЮ (RuzHub Style) =====
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = player.PlayerGui
 screenGui.ResetOnSpawn = false
+screenGui.Name = "RyzenHub"
 
--- Главное меню
+-- Основной контейнер
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 320, 0, 480)
-mainFrame.Position = UDim2.new(0.5, -160, 0.5, -240)
-mainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 30)
-mainFrame.BackgroundTransparency = 0.1
-mainFrame.BorderSizePixel = 2
-mainFrame.BorderColor3 = Color3.fromRGB(150, 0, 255)
+mainFrame.Size = UDim2.new(0, 380, 0, 520)
+mainFrame.Position = UDim2.new(0.5, -190, 0.5, -260)
+mainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 28)
+mainFrame.BackgroundTransparency = 0.05
+mainFrame.BorderSizePixel = 1
+mainFrame.BorderColor3 = Color3.fromRGB(60, 60, 100)
 mainFrame.ClipsDescendants = true
 mainFrame.Active = true
 mainFrame.Draggable = true
 mainFrame.Parent = screenGui
 
--- Заголовок
+-- Заголовок (RuzHub)
+local titleFrame = Instance.new("Frame")
+titleFrame.Size = UDim2.new(1, 0, 0, 50)
+titleFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+titleFrame.BorderSizePixel = 0
+titleFrame.Parent = mainFrame
+
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 45)
-title.Text = "⚡ RYZEN MM2 ⚡"
-title.TextColor3 = Color3.fromRGB(255, 200, 0)
+title.Size = UDim2.new(1, 0, 1, 0)
+title.Text = "RuzHub"
+title.TextColor3 = Color3.fromRGB(255, 200, 50)
 title.BackgroundTransparency = 1
 title.TextScaled = true
 title.Font = Enum.Font.GothamBlack
-title.Parent = mainFrame
+title.TextXAlignment = Enum.TextXAlignment.Center
+title.Parent = titleFrame
 
--- Создание кнопок (уменьшены для мобил)
-local function createBtn(text, y, color, callback)
+-- Подзаголовок
+local subTitle = Instance.new("TextLabel")
+subTitle.Size = UDim2.new(1, 0, 0, 20)
+subTitle.Position = UDim2.new(0, 0, 1, -20)
+subTitle.Text = "MMV And MM2"
+subTitle.TextColor3 = Color3.fromRGB(150, 150, 200)
+subTitle.BackgroundTransparency = 1
+subTitle.TextSize = 12
+subTitle.Font = Enum.Font.GothamMedium
+subTitle.TextXAlignment = Enum.TextXAlignment.Center
+subTitle.Parent = titleFrame
+
+-- ===== ВКЛАДКИ (INVENTORY / SHOP / SPECTATE) =====
+local tabFrame = Instance.new("Frame")
+tabFrame.Size = UDim2.new(1, 0, 0, 40)
+tabFrame.Position = UDim2.new(0, 0, 0, 50)
+tabFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 35)
+tabFrame.BorderSizePixel = 0
+tabFrame.Parent = mainFrame
+
+-- Функция создания вкладок
+local function createTab(text, x, callback)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 270, 0, 32)
-    btn.Position = UDim2.new(0, 25, 0, y)
+    btn.Size = UDim2.new(0, 120, 1, 0)
+    btn.Position = UDim2.new(0, x, 0, 0)
     btn.Text = text
-    btn.BackgroundColor3 = color or Color3.fromRGB(35, 35, 55)
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.BorderColor3 = Color3.fromRGB(80, 80, 120)
-    btn.BorderSizePixel = 1
-    btn.Font = Enum.Font.GothamMedium
+    btn.TextColor3 = Color3.fromRGB(200, 200, 255)
+    btn.BackgroundColor3 = Color3.fromRGB(22, 22, 35)
+    btn.BorderSizePixel = 0
+    btn.Font = Enum.Font.GothamBold
     btn.TextSize = 14
-    btn.Parent = mainFrame
+    btn.Parent = tabFrame
     btn.MouseButton1Click:Connect(callback)
     return btn
 end
 
--- Кнопки
-local espBtn = createBtn("👁️ ESP: OFF", 55, Color3.fromRGB(35,35,55), function()
-    settings.espEnabled = not settings.espEnabled
-    espBtn.Text = settings.espEnabled and "👁️ ESP: ON" or "👁️ ESP: OFF"
-    espBtn.BackgroundColor3 = settings.espEnabled and Color3.fromRGB(0,150,0) or Color3.fromRGB(35,35,55)
-    if settings.espEnabled then startESP() else stopESP() end
-    saveConfig()
+local currentTab = "INVENTORY"
+local inventoryTab = createTab("INVENTORY", 5, function()
+    currentTab = "INVENTORY"
+    updateContent()
+end)
+local shopTab = createTab("SHOP", 130, function()
+    currentTab = "SHOP"
+    updateContent()
+end)
+local spectateTab = createTab("SPECTATE", 255, function()
+    currentTab = "SPECTATE"
+    updateContent()
 end)
 
-local wallBtn = createBtn("🧱 WALLHACK: OFF", 92, Color3.fromRGB(35,35,55), function()
-    settings.wallhackEnabled = not settings.wallhackEnabled
-    wallBtn.Text = settings.wallhackEnabled and "🧱 WALLHACK: ON" or "🧱 WALLHACK: OFF"
-    wallBtn.BackgroundColor3 = settings.wallhackEnabled and Color3.fromRGB(0,100,200) or Color3.fromRGB(35,35,55)
-    if settings.wallhackEnabled then startWallhack() else stopWallhack() end
-    saveConfig()
-end)
+-- Индикатор активной вкладки
+local tabIndicator = Instance.new("Frame")
+tabIndicator.Size = UDim2.new(0, 110, 0, 3)
+tabIndicator.Position = UDim2.new(0, 10, 1, -3)
+tabIndicator.BackgroundColor3 = Color3.fromRGB(255, 200, 50)
+tabIndicator.BorderSizePixel = 0
+tabIndicator.Parent = tabFrame
 
-local aimBtn = createBtn("🎯 AIMBOT: OFF", 129, Color3.fromRGB(35,35,55), function()
-    settings.aimEnabled = not settings.aimEnabled
-    aimBtn.Text = settings.aimEnabled and "🎯 AIMBOT: ON" or "🎯 AIMBOT: OFF"
-    aimBtn.BackgroundColor3 = settings.aimEnabled and Color3.fromRGB(0,150,0) or Color3.fromRGB(35,35,55)
-    if settings.aimEnabled then startAimbot() else stopAimbot() end
-    saveConfig()
-end)
+-- ===== КОНТЕНТ =====
+local contentFrame = Instance.new("Frame")
+contentFrame.Size = UDim2.new(1, 0, 1, -90)
+contentFrame.Position = UDim2.new(0, 0, 0, 90)
+contentFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 28)
+contentFrame.BorderSizePixel = 0
+contentFrame.Parent = mainFrame
 
-local silentBtn = createBtn("🔇 SILENT AIM: OFF", 166, Color3.fromRGB(35,35,55), function()
-    settings.silentAimEnabled = not settings.silentAimEnabled
-    silentBtn.Text = settings.silentAimEnabled and "🔇 SILENT AIM: ON" or "🔇 SILENT AIM: OFF"
-    silentBtn.BackgroundColor3 = settings.silentAimEnabled and Color3.fromRGB(150,0,200) or Color3.fromRGB(35,35,55)
-    if settings.silentAimEnabled then startSilentAim() else stopSilentAim() end
-    saveConfig()
-end)
+-- ===== ПОИСК =====
+local searchFrame = Instance.new("Frame")
+searchFrame.Size = UDim2.new(1, -20, 0, 35)
+searchFrame.Position = UDim2.new(0, 10, 0, 5)
+searchFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+searchFrame.BorderSizePixel = 1
+searchFrame.BorderColor3 = Color3.fromRGB(60, 60, 100)
+searchFrame.Parent = contentFrame
 
-local speedBtn = createBtn("🏃 SPEED: OFF", 203, Color3.fromRGB(35,35,55), function()
-    settings.speedEnabled = not settings.speedEnabled
-    speedBtn.Text = settings.speedEnabled and "🏃 SPEED: ON" or "🏃 SPEED: OFF"
-    speedBtn.BackgroundColor3 = settings.speedEnabled and Color3.fromRGB(0,150,0) or Color3.fromRGB(35,35,55)
-    if settings.speedEnabled then startSpeed() else stopSpeed() end
-    saveConfig()
-end)
+local searchIcon = Instance.new("TextLabel")
+searchIcon.Size = UDim2.new(0, 30, 1, 0)
+searchIcon.Text = "🔍"
+searchIcon.BackgroundTransparency = 1
+searchIcon.TextSize = 16
+searchIcon.TextColor3 = Color3.fromRGB(150, 150, 200)
+searchIcon.Parent = searchFrame
 
-local flyBtn = createBtn("🦅 FLY: OFF", 240, Color3.fromRGB(35,35,55), function()
-    settings.flyEnabled = not settings.flyEnabled
-    flyBtn.Text = settings.flyEnabled and "🦅 FLY: ON" or "🦅 FLY: OFF"
-    flyBtn.BackgroundColor3 = settings.flyEnabled and Color3.fromRGB(200,150,0) or Color3.fromRGB(35,35,55)
-    if settings.flyEnabled then startFly() else stopFly() end
-    saveConfig()
-end)
+local searchBox = Instance.new("TextBox")
+searchBox.Size = UDim2.new(1, -35, 1, 0)
+searchBox.Position = UDim2.new(0, 35, 0, 0)
+searchBox.Text = "Search..."
+searchBox.TextColor3 = Color3.fromRGB(200, 200, 255)
+searchBox.BackgroundTransparency = 1
+searchBox.TextSize = 14
+searchBox.Font = Enum.Font.GothamMedium
+searchBox.ClearTextOnFocus = false
+searchBox.Parent = searchFrame
 
-local killBtn = createBtn("🔪 AUTO-KILL: OFF", 277, Color3.fromRGB(35,35,55), function()
-    settings.autoKillEnabled = not settings.autoKillEnabled
-    killBtn.Text = settings.autoKillEnabled and "🔪 AUTO-KILL: ON" or "🔪 AUTO-KILL: OFF"
-    killBtn.BackgroundColor3 = settings.autoKillEnabled and Color3.fromRGB(150,0,0) or Color3.fromRGB(35,35,55)
-    if settings.autoKillEnabled then startAutoKill() else stopAutoKill() end
-    saveConfig()
-end)
+-- ===== КНОПКИ (стиль RuzHub) =====
+local buttonContainer = Instance.new("ScrollingFrame")
+buttonContainer.Size = UDim2.new(1, 0, 1, -45)
+buttonContainer.Position = UDim2.new(0, 0, 0, 45)
+buttonContainer.BackgroundTransparency = 1
+buttonContainer.BorderSizePixel = 0
+buttonContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
+buttonContainer.ScrollBarThickness = 4
+buttonContainer.Parent = contentFrame
 
-local coinBtn = createBtn("🪙 AUTO-COIN: OFF", 314, Color3.fromRGB(35,35,55), function()
-    settings.autoCoinEnabled = not settings.autoCoinEnabled
-    coinBtn.Text = settings.autoCoinEnabled and "🪙 AUTO-COIN: ON" or "🪙 AUTO-COIN: OFF"
-    coinBtn.BackgroundColor3 = settings.autoCoinEnabled and Color3.fromRGB(200,150,0) or Color3.fromRGB(35,35,55)
-    if settings.autoCoinEnabled then startAutoCoin() else stopAutoCoin() end
-    saveConfig()
-end)
+-- Функция создания кнопок с иконками (как на скринах)
+local function createHubButton(text, icon, color, callback, y)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -20, 0, 35)
+    btn.Position = UDim2.new(0, 10, 0, y or 0)
+    btn.Text = icon .. "  " .. text
+    btn.TextColor3 = Color3.fromRGB(220, 220, 255)
+    btn.BackgroundColor3 = color or Color3.fromRGB(30, 30, 50)
+    btn.BorderSizePixel = 1
+    btn.BorderColor3 = Color3.fromRGB(60, 60, 100)
+    btn.TextSize = 14
+    btn.Font = Enum.Font.GothamMedium
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.Parent = buttonContainer
+    btn.MouseButton1Click:Connect(callback)
+    return btn
+end
 
-local antiBtn = createBtn("🛡️ BYPASS: OFF", 351, Color3.fromRGB(35,35,55), function()
-    settings.antiCheatEnabled = not settings.antiCheatEnabled
-    antiBtn.Text = settings.antiCheatEnabled and "🛡️ BYPASS: ON" or "🛡️ BYPASS: OFF"
-    antiBtn.BackgroundColor3 = settings.antiCheatEnabled and Color3.fromRGB(0,100,200) or Color3.fromRGB(35,35,55)
-    antiCheatBypass.active = settings.antiCheatEnabled
-    saveConfig()
-end)
+-- ===== ДИНАМИЧЕСКОЕ ОБНОВЛЕНИЕ КОНТЕНТА =====
+local buttons = {}
 
--- Слайдер скорости
-local speedLabel = Instance.new("TextLabel")
-speedLabel.Size = UDim2.new(0, 150, 0, 25)
-speedLabel.Position = UDim2.new(0, 25, 0, 395)
-speedLabel.Text = "⚡ Speed: " .. settings.speedValue
-speedLabel.BackgroundTransparency = 1
-speedLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
-speedLabel.TextSize = 14
-speedLabel.Parent = mainFrame
-
-local speedUp = Instance.new("TextButton")
-speedUp.Size = UDim2.new(0, 40, 0, 25)
-speedUp.Position = UDim2.new(0, 190, 0, 395)
-speedUp.Text = "+"
-speedUp.BackgroundColor3 = Color3.fromRGB(60,60,80)
-speedUp.TextColor3 = Color3.fromRGB(255,255,255)
-speedUp.Parent = mainFrame
-speedUp.MouseButton1Click:Connect(function()
-    settings.speedValue = math.min(settings.speedValue + 10, 250)
-    speedLabel.Text = "⚡ Speed: " .. settings.speedValue
-    saveConfig()
-end)
-
-local speedDown = Instance.new("TextButton")
-speedDown.Size = UDim2.new(0, 40, 0, 25)
-speedDown.Position = UDim2.new(0, 240, 0, 395)
-speedDown.Text = "-"
-speedDown.BackgroundColor3 = Color3.fromRGB(60,60,80)
-speedDown.TextColor3 = Color3.fromRGB(255,255,255)
-speedDown.Parent = mainFrame
-speedDown.MouseButton1Click:Connect(function()
-    settings.speedValue = math.max(settings.speedValue - 10, 10)
-    speedLabel.Text = "⚡ Speed: " .. settings.speedValue
-    saveConfig()
-end)
-
--- Слайдер Fly
-local flyLabel = Instance.new("TextLabel")
-flyLabel.Size = UDim2.new(0, 150, 0, 25)
-flyLabel.Position = UDim2.new(0, 25, 0, 425)
-flyLabel.Text = "🦅 Fly: " .. settings.flySpeed
-flyLabel.BackgroundTransparency = 1
-flyLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
-flyLabel.TextSize = 14
-flyLabel.Parent = mainFrame
-
-local flyUp = Instance.new("TextButton")
-flyUp.Size = UDim2.new(0, 40, 0, 25)
-flyUp.Position = UDim2.new(0, 190, 0, 425)
-flyUp.Text = "+"
-flyUp.BackgroundColor3 = Color3.fromRGB(60,60,80)
-flyUp.TextColor3 = Color3.fromRGB(255,255,255)
-flyUp.Parent = mainFrame
-flyUp.MouseButton1Click:Connect(function()
-    settings.flySpeed = math.min(settings.flySpeed + 10, 200)
-    flyLabel.Text = "🦅 Fly: " .. settings.flySpeed
-    saveConfig()
-end)
-
-local flyDown = Instance.new("TextButton")
-flyDown.Size = UDim2.new(0, 40, 0, 25)
-flyDown.Position = UDim2.new(0, 240, 0, 425)
-flyDown.Text = "-"
-flyDown.BackgroundColor3 = Color3.fromRGB(60,60,80)
-flyDown.TextColor3 = Color3.fromRGB(255,255,255)
-flyDown.Parent = mainFrame
-flyDown.MouseButton1Click:Connect(function()
-    settings.flySpeed = math.max(settings.flySpeed - 10, 10)
-    flyLabel.Text = "🦅 Fly: " .. settings.flySpeed
-    saveConfig()
-end)
-
--- ===== ЖЕСТЫ ДЛЯ МОБИЛ (Double Tap для Fly) =====
-local lastTapTime = 0
-local tapCount = 0
-
-UserInput.TouchTap:Connect(function()
-    if not mainFrame.Visible then return end
-    local currentTime = tick()
-    if currentTime - lastTapTime < 0.3 then
-        tapCount = tapCount + 1
-        if tapCount >= 2 then
-            -- Двойной тап переключает Fly
-            settings.flyEnabled = not settings.flyEnabled
-            flyBtn.Text = settings.flyEnabled and "🦅 FLY: ON" or "🦅 FLY: OFF"
-            flyBtn.BackgroundColor3 = settings.flyEnabled and Color3.fromRGB(200,150,0) or Color3.fromRGB(35,35,55)
-            if settings.flyEnabled then startFly() else stopFly() end
-            saveConfig()
-            tapCount = 0
-            -- Визуальный фидбек
-            local feedback = Instance.new("TextLabel")
-            feedback.Size = UDim2.new(0, 200, 0, 50)
-            feedback.Position = UDim2.new(0.5, -100, 0.5, -25)
-            feedback.Text = settings.flyEnabled and "🦅 FLY ON" or "🦅 FLY OFF"
-            feedback.TextColor3 = Color3.fromRGB(255,255,255)
-            feedback.BackgroundColor3 = Color3.fromRGB(0,0,0)
-            feedback.BackgroundTransparency = 0.5
-            feedback.TextScaled = true
-            feedback.Parent = screenGui
-            wait(0.5)
-            feedback:Destroy()
-        end
-    else
-        tapCount = 1
+function updateContent()
+    -- Очистка
+    for _, btn in pairs(buttons) do
+        btn:Destroy()
     end
-    lastTapTime = currentTime
-end)
-
--- ===== ESP =====
-local espObjects = {}
-local espConnections = {}
-
-function startESP()
-    local function getRole(plr)
-        if plr.Character and plr.Character:FindFirstChild("Head") then
-            local head = plr.Character.Head
-            for _, obj in pairs(head:GetChildren()) do
-                if obj:IsA("BillboardGui") and obj.Name == "Role" then
-                    return obj.Text
+    buttons = {}
+    
+    local y = 5
+    
+    if currentTab == "INVENTORY" then
+        -- Auto-Loaded Buttons (как на скрине)
+        local section1 = Instance.new("TextLabel")
+        section1.Size = UDim2.new(1, -20, 0, 25)
+        section1.Position = UDim2.new(0, 10, 0, y)
+        section1.Text = "Auto-Loaded Buttons"
+        section1.TextColor3 = Color3.fromRGB(255, 200, 50)
+        section1.BackgroundTransparency = 1
+        section1.TextSize = 13
+        section1.Font = Enum.Font.GothamBold
+        section1.TextXAlignment = Enum.TextXAlignment.Left
+        section1.Parent = buttonContainer
+        table.insert(buttons, section1)
+        y = y + 30
+        
+        -- Show Gold Bomb
+        local goldBtn = createHubButton("Show Gold Bomb", "💣", Color3.fromRGB(40, 30, 20), function()
+            settings.showGoldBomb = not settings.showGoldBomb
+            goldBtn.BackgroundColor3 = settings.showGoldBomb and Color3.fromRGB(60, 40, 20) or Color3.fromRGB(30, 30, 50)
+            if settings.showGoldBomb then startGoldBomb() else stopGoldBomb() end
+        end, y)
+        table.insert(buttons, goldBtn)
+        y = y + 40
+        
+        -- Show Normal Bomb
+        local normalBtn = createHubButton("Show Normal Bomb", "🧨", Color3.fromRGB(30, 30, 50), function()
+            settings.showNormalBomb = not settings.showNormalBomb
+            normalBtn.BackgroundColor3 = settings.showNormalBomb and Color3.fromRGB(40, 40, 60) or Color3.fromRGB(30, 30, 50)
+            if settings.showNormalBomb then startNormalBomb() else stopNormalBomb() end
+        end, y)
+        table.insert(buttons, normalBtn)
+        y = y + 40
+        
+        -- Show Shoot/Throw
+        local shootBtn = createHubButton("Show Shoot/Throw", "🔫", Color3.fromRGB(30, 30, 50), function()
+            settings.showShootThrow = not settings.showShootThrow
+            shootBtn.BackgroundColor3 = settings.showShootThrow and Color3.fromRGB(40, 40, 60) or Color3.fromRGB(30, 30, 50)
+            if settings.showShootThrow then startShootThrow() else stopShootThrow() end
+        end, y)
+        table.insert(buttons, shootBtn)
+        y = y + 40
+        
+        -- Разделитель
+        local divider = Instance.new("Frame")
+        divider.Size = UDim2.new(1, -20, 0, 2)
+        divider.Position = UDim2.new(0, 10, 0, y)
+        divider.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+        divider.BorderSizePixel = 0
+        divider.Parent = buttonContainer
+        table.insert(buttons, divider)
+        y = y + 10
+        
+        -- Optional Buttons
+        local section2 = Instance.new("TextLabel")
+        section2.Size = UDim2.new(1, -20, 0, 25)
+        section2.Position = UDim2.new(0, 10, 0, y)
+        section2.Text = "Optional Buttons"
+        section2.TextColor3 = Color3.fromRGB(255, 200, 50)
+        section2.BackgroundTransparency = 1
+        section2.TextSize = 13
+        section2.Font = Enum.Font.GothamBold
+        section2.TextXAlignment = Enum.TextXAlignment.Left
+        section2.Parent = buttonContainer
+        table.insert(buttons, section2)
+        y = y + 30
+        
+        -- Load ESP Toggle
+        local espBtn = createHubButton("Load ESP Toggle", "👁️", Color3.fromRGB(30, 30, 50), function()
+            settings.espEnabled = not settings.espEnabled
+            espBtn.BackgroundColor3 = settings.espEnabled and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(30, 30, 50)
+            if settings.espEnabled then startESP() else stopESP() end
+        end, y)
+        table.insert(buttons, espBtn)
+        y = y + 40
+        
+        -- Load Flick
+        local flickBtn = createHubButton("Load Flick", "⚡", Color3.fromRGB(30, 30, 50), function()
+            settings.flickEnabled = not settings.flickEnabled
+            flickBtn.BackgroundColor3 = settings.flickEnabled and Color3.fromRGB(150, 100, 0) or Color3.fromRGB(30, 30, 50)
+            if settings.flickEnabled then startFlick() else stopFlick() end
+        end, y)
+        table.insert(buttons, flickBtn)
+        y = y + 40
+        
+        -- Load Grab Gun
+        local grabBtn = createHubButton("Load Grab Gun", "🫴", Color3.fromRGB(30, 30, 50), function()
+            settings.grabGunEnabled = not settings.grabGunEnabled
+            grabBtn.BackgroundColor3 = settings.grabGunEnabled and Color3.fromRGB(0, 100, 150) or Color3.fromRGB(30, 30, 50)
+            if settings.grabGunEnabled then startGrabGun() else stopGrabGun() end
+        end, y)
+        table.insert(buttons, grabBtn)
+        y = y + 40
+        
+        -- Load Speed Glitch
+        local speedBtn = createHubButton("Load Speed Glitch", "🏃", Color3.fromRGB(30, 30, 50), function()
+            settings.speedGlitchEnabled = not settings.speedGlitchEnabled
+            speedBtn.BackgroundColor3 = settings.speedGlitchEnabled and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(30, 30, 50)
+            if settings.speedGlitchEnabled then startSpeedGlitch() else stopSpeedGlitch() end
+        end, y)
+        table.insert(buttons, speedBtn)
+        y = y + 40
+        
+    elseif currentTab == "SHOP" then
+        local shopLabel = Instance.new("TextLabel")
+        shopLabel.Size = UDim2.new(1, -20, 0, 30)
+        shopLabel.Position = UDim2.new(0, 10, 0, 10)
+        shopLabel.Text = "🛒 SHOP (Coming Soon)"
+        shopLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
+        shopLabel.BackgroundTransparency = 1
+        shopLabel.TextSize = 16
+        shopLabel.Font = Enum.Font.GothamBold
+        shopLabel.Parent = buttonContainer
+        table.insert(buttons, shopLabel)
+        
+    elseif currentTab == "SPECTATE" then
+        local specLabel = Instance.new("TextLabel")
+        specLabel.Size = UDim2.new(1, -20, 0, 30)
+        specLabel.Position = UDim2.new(0, 10, 0, 10)
+        specLabel.Text = "👀 SPECTATE MODE"
+        specLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
+        specLabel.BackgroundTransparency = 1
+        specLabel.TextSize = 16
+        specLabel.Font = Enum.Font.GothamBold
+        specLabel.Parent = buttonContainer
+        table.insert(buttons, specLabel)
+        
+        -- Кнопка спекта
+        local specBtn = createHubButton("Spectate Player", "👤", Color3.fromRGB(30, 30, 50), function()
+            local players = game.Players:GetPlayers()
+            for _, p in pairs(players) do
+                if p ~= player and p.Character then
+                    cam.CameraSubject = p.Character
+                    break
                 end
             end
-        end
-        return "Innocent"
+        end, 50)
+        table.insert(buttons, specBtn)
     end
     
-    local function addESP(plr)
-        if plr == player or not plr.Character then return end
-        local highlight = Instance.new("Highlight")
-        highlight.Adornee = plr.Character
-        local role = getRole(plr)
-        highlight.FillColor = settings.roleESP[role:lower()] or Color3.fromRGB(0,255,0)
-        highlight.FillTransparency = 0.3
-        highlight.OutlineColor = Color3.fromRGB(255,255,255)
-        highlight.OutlineTransparency = 0.3
-        highlight.Parent = plr.Character
-        table.insert(espObjects, highlight)
-    end
-    
+    -- Обновление CanvasSize
+    buttonContainer.CanvasSize = UDim2.new(0, 0, 0, y + 50)
+end
+
+-- ===== ПЕРЕКЛЮЧАТЕЛИ (NO / SPEED) =====
+local toggleFrame = Instance.new("Frame")
+toggleFrame.Size = UDim2.new(1, 0, 0, 45)
+toggleFrame.Position = UDim2.new(0, 0, 1, -45)
+toggleFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 35)
+toggleFrame.BorderSizePixel = 0
+toggleFrame.Parent = mainFrame
+
+-- NO (выключено)
+local noToggle = Instance.new("TextButton")
+noToggle.Size = UDim2.new(0, 60, 0, 30)
+noToggle.Position = UDim2.new(0, 20, 0, 7)
+noToggle.Text = "NO"
+noToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+noToggle.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+noToggle.BorderSizePixel = 1
+noToggle.BorderColor3 = Color3.fromRGB(100, 50, 50)
+noToggle.Font = Enum.Font.GothamBold
+noToggle.TextSize = 14
+noToggle.Parent = toggleFrame
+
+-- SPEED (включено)
+local speedToggle = Instance.new("TextButton")
+speedToggle.Size = UDim2.new(0, 70, 0, 30)
+speedToggle.Position = UDim2.new(0, 100, 0, 7)
+speedToggle.Text = "SPEED"
+speedToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
+speedToggle.BackgroundColor3 = Color3.fromRGB(20, 40, 20)
+speedToggle.BorderSizePixel = 1
+speedToggle.BorderColor3 = Color3.fromRGB(50, 100, 50)
+speedToggle.Font = Enum.Font.GothamBold
+speedToggle.TextSize = 14
+speedToggle.Parent = toggleFrame
+speedToggle.MouseButton1Click:Connect(function()
+    settings.speedGlitchEnabled = not settings.speedGlitchEnabled
+    speedToggle.BackgroundColor3 = settings.speedGlitchEnabled and Color3.fromRGB(20, 40, 20) or Color3.fromRGB(40, 20, 20)
+    speedToggle.TextColor3 = settings.speedGlitchEnabled and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+    speedToggle.Text = settings.speedGlitchEnabled and "SPEED" or "NO"
+    if settings.speedGlitchEnabled then startSpeedGlitch() else stopSpeedGlitch() end
+end)
+
+-- ===== ФУНКЦИИ =====
+-- ESP (упрощённый)
+local espObjects = {}
+
+function startESP()
     for _, plr in pairs(game.Players:GetPlayers()) do
-        addESP(plr)
+        if plr ~= player and plr.Character then
+            local hl = Instance.new("Highlight")
+            hl.Adornee = plr.Character
+            hl.FillColor = Color3.fromRGB(0, 200, 255)
+            hl.FillTransparency = 0.4
+            hl.Parent = plr.Character
+            table.insert(espObjects, hl)
+        end
     end
-    
-    espConnections[1] = game.Players.PlayerAdded:Connect(function(plr)
-        plr.CharacterAdded:Connect(function()
-            wait(0.3)
-            if settings.espEnabled then addESP(plr) end
-        end)
-    end)
 end
 
 function stopESP()
     for _, obj in pairs(espObjects) do
-        if obj then obj:Destroy() end
+        obj:Destroy()
     end
     espObjects = {}
-    for _, conn in pairs(espConnections) do
-        if conn then conn:Disconnect() end
-    end
-    espConnections = {}
 end
 
--- ===== WALLHACK =====
-local wallhackObjects = {}
-
-function startWallhack()
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("BasePart") and v.Material ~= Enum.Material.Neon then
-            local origTrans = v.Transparency
-            v.Transparency = 0.7
-            table.insert(wallhackObjects, {obj = v, trans = origTrans})
-        end
-    end
-end
-
-function stopWallhack()
-    for _, data in pairs(wallhackObjects) do
-        if data.obj then
-            data.obj.Transparency = data.trans
-        end
-    end
-    wallhackObjects = {}
-end
-
--- ===== AIMBOT =====
-local aimConnection = nil
-
-function startAimbot()
-    aimConnection = RunService.RenderStepped:Connect(function()
-        if not settings.aimEnabled then return end
-        
-        local target = nil
-        local minDist = 500
-        
-        local playerRole = "Innocent"
-        if char:FindFirstChild("Head") then
-            for _, obj in pairs(char.Head:GetChildren()) do
-                if obj:IsA("BillboardGui") and obj.Name == "Role" then
-                    playerRole = obj.Text
+-- Flick (быстрый поворот)
+function startFlick()
+    -- Имитация быстрого поворота
+    game:GetService("RunService").RenderStepped:Connect(function()
+        if settings.flickEnabled then
+            local target = nil
+            for _, plr in pairs(game.Players:GetPlayers()) do
+                if plr ~= player and plr.Character then
+                    target = plr.Character:FindFirstChild("Head")
+                    if target then break end
                 end
             end
-        end
-        
-        for _, plr in pairs(game.Players:GetPlayers()) do
-            if plr ~= player and plr.Character and plr.Character:FindFirstChild("Head") then
-                local head = plr.Character.Head
-                local dist = (head.Position - hrp.Position).Magnitude
-                if dist > 200 then continue end
-                
-                local targetRole = "Innocent"
-                for _, obj in pairs(head:GetChildren()) do
-                    if obj:IsA("BillboardGui") and obj.Name == "Role" then
-                        targetRole = obj.Text
-                    end
-                end
-                
-                if playerRole == "Murderer" and (targetRole == "Sheriff" or targetRole == "Innocent") and dist < minDist then
-                    minDist = dist
-                    target = head
-                elseif playerRole == "Sheriff" and targetRole == "Murderer" and dist < minDist then
-                    minDist = dist
-                    target = head
-                elseif playerRole == "Innocent" and targetRole == "Murderer" and dist < minDist then
-                    minDist = dist
-                    target = head
-                end
+            if target then
+                cam.CFrame = CFrame.new(cam.CFrame.Position, target.Position)
             end
-        end
-        
-        if target then
-            cam.CFrame = CFrame.new(cam.CFrame.Position, target.Position)
         end
     end)
 end
 
-function stopAimbot()
-    if aimConnection then
-        aimConnection:Disconnect()
-        aimConnection = nil
+function stopFlick() end
+
+-- Grab Gun
+function startGrabGun()
+    local tool = char:FindFirstChildOfClass("Tool")
+    if tool then
+        tool:SetAttribute("Grab", true)
     end
 end
 
--- ===== SILENT AIM =====
-local silentAimConnection = nil
+function stopGrabGun() end
 
-function startSilentAim()
-    silentAimConnection = RunService.RenderStepped:Connect(function()
-        if not settings.silentAimEnabled then return end
-        
-        local target = nil
-        local minDist = 500
-        
-        local playerRole = "Innocent"
-        if char:FindFirstChild("Head") then
-            for _, obj in pairs(char.Head:GetChildren()) do
-                if obj:IsA("BillboardGui") and obj.Name == "Role" then
-                    playerRole = obj.Text
-                end
+-- Speed Glitch
+local speedConn = nil
+
+function startSpeedGlitch()
+    speedConn = RunService.RenderStepped:Connect(function()
+        if settings.speedGlitchEnabled and hrp then
+            local moveDir = humanoid.MoveDirection
+            if moveDir.Magnitude > 0 then
+                hrp.Velocity = moveDir * 70
             end
         end
-        
-        for _, plr in pairs(game.Players:GetPlayers()) do
-            if plr ~= player and plr.Character and plr.Character:FindFirstChild("Head") then
-                local head = plr.Character.Head
-                local dist = (head.Position - hrp.Position).Magnitude
-                if dist > 200 then continue end
-                
-                local targetRole = "Innocent"
-                for _, obj in pairs(head:GetChildren()) do
-                    if obj:IsA("BillboardGui") and obj.Name == "Role" then
-                        targetRole = obj.Text
-                    end
-                end
-                
-                if playerRole == "Murderer" and (targetRole == "Sheriff" or targetRole == "Innocent") and dist < minDist then
-                    minDist = dist
-                    target = head
-                elseif playerRole == "Sheriff" and targetRole == "Murderer" and dist < minDist then
-                    minDist = dist
-                    target = head
-                elseif playerRole == "Innocent" and targetRole == "Murderer" and dist < minDist then
-                    minDist = dist
-                    target = head
-                end
-            end
+    end)
+end
+
+function stopSpeedGlitch()
+    if speedConn then
+        speedConn:Disconnect()
+        speedConn = nil
+    end
+end
+
+-- Gold Bomb (визуальный эффект)
+function startGoldBomb()
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("Part") and v.Name:find("Bomb") then
+            v.Material = Enum.Material.Neon
+            v.Color = Color3.fromRGB(255, 200, 0)
         end
-        
-        if target then
-            -- Silent Aim: меняем направление пули без поворота камеры
+    end
+end
+
+function stopGoldBomb() end
+
+-- Normal Bomb
+function startNormalBomb()
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("Part") and v.Name:find("Bomb") then
+            v.Material = Enum.Material.SmoothPlastic
+            v.Color = Color3.fromRGB(200, 100, 50)
+        end
+    end
+end
+
+function stopNormalBomb() end
+
+-- Shoot/Throw (автоматический выстрел)
+function startShootThrow()
+    game:GetService("UserInputService").InputBegan:Connect(function(input)
+        if settings.showShootThrow and input.UserInputType == Enum.UserInputType.MouseButton1 then
             local tool = char:FindFirstChildOfClass("Tool")
             if tool then
-                local handle = tool:FindFirstChild("Handle")
-                if handle then
-                    handle.CFrame = CFrame.new(handle.Position, target.Position)
-                end
+                tool:Activate()
             end
         end
     end)
 end
 
-function stopSilentAim()
-    if silentAimConnection then
-        silentAimConnection:Disconnect()
-        silentAimConnection = nil
-    end
-end
+function stopShootThrow() end
 
--- ===== SPEED =====
-local speedConnection = nil
+-- ===== ЗАПУСК =====
+updateContent()
 
-function startSpeed()
-    speedConnection = RunService.RenderStepped:Connect(function()
-        if not settings.speedEnabled or not hrp then return end
-        
-        local moveDir = humanoid.MoveDirection
-        if moveDir.Magnitude > 0 then
-            hrp.Velocity = moveDir * settings.speedValue
-            humanoid.WalkSpeed = 16
-        end
-    end)
-end
+-- Анимация появления
+mainFrame.BackgroundTransparency = 0.5
+TweenService:Create(mainFrame, TweenInfo.new(0.3), {BackgroundTransparency = 0.05}):Play()
 
-function stopSpeed()
-    if speedConnection then
-        speedConnection:Disconnect()
-        speedConnection = nil
-    end
-end
-
--- ===== FLY =====
-local flyConnection = nil
-local flyJump = false
-
-function startFly()
-    flyJump = true
-    flyConnection = RunService.RenderStepped:Connect(function()
-        if not settings.flyEnabled then return end
-        
-        -- Управление полётом (джойстик)
-        local moveDir = humanoid.MoveDirection
-        if moveDir.Magnitude > 0 then
-            hrp.Velocity = moveDir * settings.flySpeed
-        end
-        
-        -- Взлёт/спуск (прыжок и присед)
-        if UserInput:IsKeyDown(Enum.KeyCode.Space) or UserInput:IsKeyDown(Enum.KeyCode.LeftShift) then
-            if UserInput:IsKeyDown(Enum.KeyCode.Space) then
-                hrp.Velocity = hrp.Velocity + Vector3.new(0, settings.flySpeed, 0)
-            end
-            if UserInput:IsKeyDown(Enum.KeyCode.LeftShift) then
-                hrp.Velocity = hrp.Velocity + Vector3.new(0, -settings.flySpeed, 0)
-            end
-        end
-        
-        -- От
+print("✅ Ryzen Hub v5.0 (RuzHub Clone) загружен!")
+print("📱 Интерфейс полностью скопирован со скриншотов")
