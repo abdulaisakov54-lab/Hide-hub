@@ -1,283 +1,172 @@
--- Загрузка UI библиотеки Rayfield
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+-- ReefHub // Fps Flick Mobile (Optimized for loadstring)
+local success, Rayfield = pcall(function()
+    return loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+end)
+
+if not success or not Rayfield then
+    warn("ReefHub: Ошибка загрузки UI библиотеки!")
+    return
+end
 
 local Window = Rayfield:CreateWindow({
-   Name = "XONE // Fps Flick Mobile",
-   LoadingTitle = "Загрузка ядра Xone...",
+   Name = "ReefHub // Fps Flick [Mobile]",
+   LoadingTitle = "Загрузка ReefHub...",
    LoadingSubtitle = "by Danya Warenik",
    ConfigurationSaving = {
       Enabled = false,
-      FolderName = "XoneConfig",
+      FolderName = "ReefHubConfig",
       FileName = "FpsFlick"
    },
    KeySystem = false,
-   KeySettings = {
-      Title = "Xone Auth",
-      Subtitle = "Введите ключ",
-      Note = "Ключ: xone",
-      FileName = "XoneKey",
-      SaveKey = true,
-      GrabKeyFromSite = false,
-      Key = {"xone"}
-   }
 })
 
--- Создание вкладок меню
-local AimbotTab = Window:CreateTab("🎯 Аимбот", 4483362458)
-local EspTab = Window:CreateTab("👁️ ESP (ВХ)", 4483362458)
-local RageTab = Window:CreateTab("⚡ Rage & Misc", 4483362458)
-local SettingsTab = Window:CreateTab("⚙️ Настройки", 4483362458)
+-- Вкладки
+local MainTab = Window:CreateTab("🏠 Main", 4483362458)
+local CombatTab = Window:CreateTab("⚔️ Combat", 4483362458)
+local VisualsTab = Window:CreateTab("👁️ Visuals", 4483362458)
+local SupportTab = Window:CreateTab("💬 Support ReefHub", 4483362458)
 
--- Глобальные переменные конфигурации
-_G.AimbotEnabled = false
-_G.AimPart = "Head"
-_G.AimFOV = 120
-_G.Smoothness = 5
+-- Переменные
+_G.SilentAim = false
+_G.RapidFire = false
+_G.TriggerBot = false
 _G.WallCheck = true
+_G.AimPart = "Head"
 
-_G.EspEnabled = false
-_G.BoxEsp = false
-_G.NameEsp = false
-_G.DistanceEsp = false
-_G.HealthEsp = false
-_G.Tracers = false
-_G.EspColor = Color3.fromRGB(0, 255, 204)
-
-_G.HitboxSize = 2
-_G.BhopEnabled = false
-_G.Spinbot = false
+_G.EspBox = false
+_G.EspSkeleton = false
+_G.EspHealth = false
+_G.EspName = false
 
 ------------------------------------------------------------------
--- ВКЛАДКА: АИМБОТ (AIMBOT)
+-- ВКЛАДКА: MAIN
 ------------------------------------------------------------------
+MainTab:CreateSection("Информация о скрипте")
+MainTab:CreateParagraph({Title = "REEFHUB // FLICK", Content = "Keyless • Mobile Edition\nЗагружено через GitHub loadstring."})
 
-AimbotTab:CreateSection("Основные настройки аима")
-
-AimbotTab:CreateToggle({
-   Name = "Включить Aimbot",
-   CurrentValue = false,
-   Flag = "AimbotToggle",
-   Callback = function(Value)
-      _G.AimbotEnabled = Value
+MainTab:CreateButton({
+   Name = "Скопировать ссылку на Discord",
+   Callback = function()
+      setclipboard("https://discord.gg/reefhub")
+      Rayfield:Notify({Title = "Успешно", Content = "Ссылка скопирована в буфер обмена!", Duration = 3})
    end,
 })
 
-AimbotTab:CreateDropdown({
-   Name = "Часть тела для наводки",
-   Options = {"Head", "HumanoidRootPart", "Torso"},
+------------------------------------------------------------------
+-- ВКЛАДКА: COMBAT
+------------------------------------------------------------------
+CombatTab:CreateSection("Аим и Оружие")
+
+CombatTab:CreateToggle({
+   Name = "Silent Aim (Тихий аим)",
+   CurrentValue = false,
+   Flag = "SilentAimToggle",
+   Callback = function(Value)
+      _G.SilentAim = Value
+   end,
+})
+
+CombatTab:CreateDropdown({
+   Name = "Часть тела",
+   Options = {"Head", "HumanoidRootPart"},
    CurrentOption = "Head",
-   Flag = "AimPartDrop",
+   Flag = "AimPartChoice",
    Callback = function(Option)
       _G.AimPart = Option
    end,
 })
 
-AimbotTab:CreateSlider({
-   Name = "Радиус FOV (Круг захвата)",
-   Range = 30,
-   Increment = 5,
-   CurrentValue = 120,
-   Suffix = "px",
-   Flag = "FovSlider",
-   Callback = function(Value)
-      _G.AimFOV = Value
-   end,
-})
-
-AimbotTab:CreateSlider({
-   Name = "Плавность наводки (Smooth)",
-   Range = 1,
-   Increment = 1,
-   CurrentValue = 5,
-   Suffix = "x",
-   Flag = "SmoothSlider",
-   Callback = function(Value)
-      _G.Smoothness = Value
-   end,
-})
-
-------------------------------------------------------------------
--- ВКЛАДКА: ESP (ВХ)
-------------------------------------------------------------------
-
-EspTab:CreateSection("Визуальные функции")
-
-EspTab:CreateToggle({
-   Name = "Включить ESP",
+CombatTab:CreateToggle({
+   Name = "Rapid Fire (Быстрый огонь)",
    CurrentValue = false,
-   Flag = "EspToggle",
+   Flag = "RapidFireToggle",
    Callback = function(Value)
-      _G.EspEnabled = Value
+      _G.RapidFire = Value
    end,
 })
 
-EspTab:CreateToggle({
-   Name = "Боксы (Boxes)",
+CombatTab:CreateToggle({
+   Name = "WallCheck (Проверка стен)",
+   CurrentValue = true,
+   Flag = "WallCheckToggle",
+   Callback = function(Value)
+      _G.WallCheck = Value
+   end,
+})
+
+------------------------------------------------------------------
+-- ВКЛАДКА: VISUALS
+------------------------------------------------------------------
+VisualsTab:CreateSection("Визуальные эффекты (ESP)")
+
+VisualsTab:CreateToggle({
+   Name = "ESP Box (Хитбоксы)",
    CurrentValue = false,
    Flag = "BoxToggle",
    Callback = function(Value)
-      _G.BoxEsp = Value
+      _G.EspBox = Value
    end,
 })
 
-EspTab:CreateToggle({
-   Name = "Никнеймы игроков",
+VisualsTab:CreateToggle({
+   Name = "ESP Health (Здоровье)",
    CurrentValue = false,
-   Flag = "NameToggle",
+   Flag = "HealthToggle",
    Callback = function(Value)
-      _G.NameEsp = Value
-   end,
-})
-
-EspTab:CreateToggle({
-   Name = "Дистанция",
-   CurrentValue = false,
-   Flag = "DistToggle",
-   Callback = function(Value)
-      _G.DistanceEsp = Value
-   end,
-})
-
-EspTab:CreateToggle({
-   Name = "Здоровье (HP)",
-   CurrentValue = false,
-   Flag = "HpToggle",
-   Callback = function(Value)
-      _G.HealthEsp = Value
+      _G.EspHealth = Value
    end,
 })
 
 ------------------------------------------------------------------
--- ВКЛАДКА: RAGE & MISC
+-- ВКЛАДКА: SUPPORT
 ------------------------------------------------------------------
-
-RageTab:CreateSection("Рейдж функции и модификаторы")
-
-RageTab:CreateSlider({
-   Name = "Увеличение хитбоксов врагов",
-   Range = 1,
-   Increment = 0.5,
-   CurrentValue = 2,
-   Suffix = "x",
-   Flag = "HitboxSlider",
-   Callback = function(Value)
-      _G.HitboxSize = Value
-   end,
-})
-
-RageTab:CreateToggle({
-   Name = "Авто-расширение хитбоксов",
-   CurrentValue = false,
-   Flag = "HitboxToggle",
-   Callback = function(Value)
-      spawn(function()
-         while Value and task.wait(1) do
-            pcall(function()
-               for _, player in pairs(game.Players:GetPlayers()) do
-                  if player ~= game.Players.LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                     player.Character.HumanoidRootPart.Size = Vector3.new(_G.HitboxSize*2, _G.HitboxSize*2, _G.HitboxSize*2)
-                     player.Character.HumanoidRootPart.Transparency = 0.7
-                     player.Character.HumanoidRootPart.CanCollide = false
-                  end
-               end
-            end)
-         end
-      end)
-   end,
-})
-
-RageTab:CreateToggle({
-   Name = "Авто-прыжок (BunnyHop)",
-   CurrentValue = false,
-   Flag = "BhopToggle",
-   Callback = function(Value)
-      _G.BhopEnabled = Value
-      spawn(function()
-         while _G.BhopEnabled do
-            task.wait(0.05)
-            pcall(function()
-               game.Players.LocalPlayer.Character.Humanoid.Jump = true
-            end)
-         end
-      end)
-   end,
-})
-
-RageTab:CreateToggle({
-   Name = "Спинбот (SpinBot)",
-   CurrentValue = false,
-   Flag = "SpinToggle",
-   Callback = function(Value)
-      _G.Spinbot = Value
-      spawn(function()
-         while _G.Spinbot do
-            task.wait()
-            pcall(function()
-               local root = game.Players.LocalPlayer.Character.HumanoidRootPart
-               root.CFrame = root.CFrame * CFrame.Angles(0, math.rad(30), 0)
-            end)
-         end
-      end)
-   end,
-})
-
-------------------------------------------------------------------
--- ВКЛАДКА: НАСТРОЙКИ
-------------------------------------------------------------------
-
-SettingsTab:CreateSection("Управление интерфейсом")
-
-SettingsTab:CreateButton({
-   Name = "Закрыть/Удалить меню",
+SupportTab:CreateSection("Управление")
+SupportTab:CreateButton({
+   Name = "Закрыть меню",
    Callback = function()
       Rayfield:Destroy()
    end,
 })
 
 Rayfield:Notify({
-   Title = "XONE запущен!",
-   Content = "Скрипт успешно активирован в Fps Flick.",
+   Title = "ReefHub запущен!",
+   Content = "Скрипт успешно подгружен из сети.",
    Duration = 5,
    Image = 4483362458,
 })
 
 ------------------------------------------------------------------
--- ОСНОВНАЯ ЛОГИКА (AIMBOT & MOUSE SERVICES)
+-- ЛОГИКА ФУНКЦИЙ
 ------------------------------------------------------------------
-
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
 local RunService = game:GetService("RunService")
-local Mouse = LocalPlayer:GetMouse() -- Исправлено: теперь мышь отслеживается корректно
 
-local function getClosestPlayer()
-   local target = nil
-   local shortestDist = _G.AimFOV
+RunService.Stepped:Connect(function()
+   if _G.RapidFire then
+      pcall(function()
+         local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
+         if tool and tool:FindFirstChild("Configurations") and tool.Configurations:FindFirstChild("FireRate") then
+            tool.Configurations.FireRate.Value = 0.01
+         end
+      end)
+   end
+end)
 
-   for _, v in pairs(Players:GetPlayers()) do
-      if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
-         local part = v.Character:FindFirstChild(_G.AimPart)
-         if part then
-            local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
-            if onScreen then
-               local mouseDist = (Vector2.new(Mouse.X, Mouse.Y) - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
-               if mouseDist < shortestDist then
-                  shortestDist = mouseDist
-                  target = part
-               end
+RunService.RenderStepped:Connect(function()
+   pcall(function()
+      for _, player in pairs(Players:GetPlayers()) do
+         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = player.Character.HumanoidRootPart
+            if _G.EspBox then
+               hrp.Size = Vector3.new(4, 4, 4)
+               hrp.Transparency = 0.7
+               hrp.CanCollide = false
+            else
+               hrp.Size = Vector3.new(2, 2, 1)
+               hrp.Transparency = 1
             end
          end
       end
-   end
-   return target
-end
-
-RunService.RenderStepped:Connect(function()
-   if _G.AimbotEnabled then
-      local targetPart = getClosestPlayer()
-      if targetPart then
-         Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position)
-      end
-   end
+   end)
 end)
